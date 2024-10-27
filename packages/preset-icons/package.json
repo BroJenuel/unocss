@@ -1,6 +1,7 @@
 {
   "name": "@unocss/preset-icons",
-  "version": "0.52.0",
+  "type": "module",
+  "version": "0.63.6",
   "description": "Pure CSS Icons for UnoCSS",
   "author": "Anthony Fu <anthonyfu117@hotmail.com>",
   "license": "MIT",
@@ -24,38 +25,43 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
     },
     "./browser": {
-      "types": "./dist/browser.d.ts",
-      "require": "./dist/browser.cjs",
-      "import": "./dist/browser.mjs"
+      "types": "./dist/browser.d.mts",
+      "default": "./dist/browser.mjs"
     },
     "./core": {
-      "types": "./dist/core.d.ts",
-      "require": "./dist/core.cjs",
-      "import": "./dist/core.mjs"
+      "types": "./dist/core.d.mts",
+      "default": "./dist/core.mjs"
     }
   },
-  "main": "dist/index.cjs",
+  "main": "dist/index.mjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./*"
+      ]
+    }
+  },
   "files": [
-    "dist",
-    "*.css"
+    "*.css",
+    "dist"
   ],
   "scripts": {
     "build": "unbuild",
     "stub": "unbuild --stub"
   },
   "dependencies": {
-    "@iconify/utils": "^2.1.5",
+    "@iconify/utils": "catalog:",
     "@unocss/core": "workspace:*",
-    "ofetch": "^1.0.1"
+    "ofetch": "catalog:"
   },
   "devDependencies": {
-    "@iconify/types": "^2.0.0"
+    "@iconify/types": "catalog:"
   }
 }

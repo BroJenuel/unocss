@@ -1,7 +1,7 @@
 import type { UnoGenerator } from '@unocss/core'
-import type { Root } from 'postcss'
-
 import type { Theme } from '@unocss/preset-mini'
+
+import type { Root } from 'postcss'
 
 export async function parseScreen(root: Root, uno: UnoGenerator, directiveName: string) {
   // @ts-expect-error types
@@ -30,8 +30,12 @@ export async function parseScreen(root: Root, uno: UnoGenerator, directiveName: 
         breakpoints = (uno.config.theme as Theme).breakpoints
 
       return breakpoints
+        ? Object.entries(breakpoints)
+          .sort((a, b) => Number.parseInt(a[1].replace(/[a-z]+/gi, '')) - Number.parseInt(b[1].replace(/[a-z]+/gi, '')))
+          .map(([point, size]) => ({ point, size }))
+        : undefined
     }
-    const variantEntries: Array<[string, string, number]> = Object.entries(resolveBreakpoints() ?? {}).map(([point, size], idx) => [point, size, idx])
+    const variantEntries: Array<[string, string, number]> = (resolveBreakpoints() ?? []).map(({ point, size }, idx) => [point, size, idx])
     const generateMediaQuery = (breakpointName: string, prefix?: string) => {
       const [, size, idx] = variantEntries.find(i => i[0] === breakpointName)!
       if (prefix) {
@@ -54,8 +58,8 @@ export async function parseScreen(root: Root, uno: UnoGenerator, directiveName: 
 }
 
 function calcMaxWidthBySize(size: string) {
-  const value = size.match(/^-?[0-9]+\.?[0-9]*/)?.[0] || ''
+  const value = size.match(/^-?\d+\.?\d*/)?.[0] || ''
   const unit = size.slice(value.length)
-  const maxWidth = (parseFloat(value) - 0.1)
+  const maxWidth = (Number.parseFloat(value) - 0.1)
   return Number.isNaN(maxWidth) ? size : `${maxWidth}${unit}`
 }

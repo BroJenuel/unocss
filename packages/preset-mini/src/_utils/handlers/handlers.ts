@@ -1,30 +1,74 @@
 import { escapeSelector } from '@unocss/core'
 import { globalKeywords } from '../mappings'
-import { numberRE, numberWithUnitRE, unitOnlyRE } from './regex'
+import { bracketTypeRe, numberRE, numberWithUnitRE, unitOnlyMap, unitOnlyRE } from './regex'
 
 // Not all, but covers most high frequency attributes
 const cssProps = [
   // basic props
-  'color', 'border-color', 'background-color', 'flex-grow', 'flex', 'flex-shrink',
-  'caret-color', 'font', 'gap', 'opacity', 'visibility', 'z-index', 'font-weight',
-  'zoom', 'text-shadow', 'transform', 'box-shadow',
+  'color',
+  'border-color',
+  'background-color',
+  'outline-color',
+  'text-decoration-color',
+  'flex-grow',
+  'flex',
+  'flex-shrink',
+  'caret-color',
+  'font',
+  'gap',
+  'opacity',
+  'visibility',
+  'z-index',
+  'font-weight',
+  'zoom',
+  'text-shadow',
+  'transform',
+  'box-shadow',
+  'border',
 
   // positions
-  'background-position', 'left', 'right', 'top', 'bottom', 'object-position',
+  'background-position',
+  'left',
+  'right',
+  'top',
+  'bottom',
+  'object-position',
 
   // sizes
-  'max-height', 'min-height', 'max-width', 'min-width', 'height', 'width',
-  'border-width', 'margin', 'padding', 'outline-width', 'outline-offset',
-  'font-size', 'line-height', 'text-indent', 'vertical-align',
-  'border-spacing', 'letter-spacing', 'word-spacing',
+  'max-height',
+  'min-height',
+  'max-width',
+  'min-width',
+  'height',
+  'width',
+  'border-width',
+  'margin',
+  'padding',
+  'outline-width',
+  'outline-offset',
+  'font-size',
+  'line-height',
+  'text-indent',
+  'vertical-align',
+  'border-spacing',
+  'letter-spacing',
+  'word-spacing',
 
   // enhances
-  'stroke', 'filter', 'backdrop-filter', 'fill', 'mask', 'mask-size', 'mask-border', 'clip-path', 'clip',
+  'stroke',
+  'filter',
+  'backdrop-filter',
+  'fill',
+  'mask',
+  'mask-size',
+  'mask-border',
+  'clip-path',
+  'clip',
   'border-radius',
 ]
 
 function round(n: number) {
-  return n.toFixed(10).replace(/\.0+$/, '').replace(/(\.\d+?)0+$/, '$1')
+  return +n.toFixed(10)
 }
 
 export function numberWithUnit(str: string) {
@@ -32,7 +76,7 @@ export function numberWithUnit(str: string) {
   if (!match)
     return
   const [, n, unit] = match
-  const num = parseFloat(n)
+  const num = Number.parseFloat(n)
   if (unit && !Number.isNaN(num))
     return `${round(num)}${unit}`
 }
@@ -43,13 +87,15 @@ export function auto(str: string) {
 }
 
 export function rem(str: string) {
-  if (str.match(unitOnlyRE))
-    return `1${str}`
+  if (!str)
+    return
+  if (unitOnlyRE.test(str))
+    return `${unitOnlyMap[str]}${str}`
   const match = str.match(numberWithUnitRE)
   if (!match)
     return
   const [, n, unit] = match
-  const num = parseFloat(n)
+  const num = Number.parseFloat(n)
   if (!Number.isNaN(num)) {
     if (num === 0)
       return '0'
@@ -58,24 +104,21 @@ export function rem(str: string) {
 }
 
 export function px(str: string) {
-  if (str.match(unitOnlyRE))
-    return `1${str}`
+  if (unitOnlyRE.test(str))
+    return `${unitOnlyMap[str]}${str}`
   const match = str.match(numberWithUnitRE)
   if (!match)
     return
   const [, n, unit] = match
-  const num = parseFloat(n)
-  if (!Number.isNaN(num)) {
-    if (num === 0)
-      return '0'
+  const num = Number.parseFloat(n)
+  if (!Number.isNaN(num))
     return unit ? `${round(num)}${unit}` : `${round(num)}px`
-  }
 }
 
 export function number(str: string) {
   if (!numberRE.test(str))
     return
-  const num = parseFloat(str)
+  const num = Number.parseFloat(str)
   if (!Number.isNaN(num))
     return round(num)
 }
@@ -85,16 +128,18 @@ export function percent(str: string) {
     str = str.slice(0, -1)
   if (!numberRE.test(str))
     return
-  const num = parseFloat(str)
+  const num = Number.parseFloat(str)
   if (!Number.isNaN(num))
     return `${round(num / 100)}`
 }
 
 export function fraction(str: string) {
+  if (!str)
+    return
   if (str === 'full')
     return '100%'
   const [left, right] = str.split('/')
-  const num = parseFloat(left) / parseFloat(right)
+  const num = Number.parseFloat(left) / Number.parseFloat(right)
   if (!Number.isNaN(num)) {
     if (num === 0)
       return '0'
@@ -102,7 +147,6 @@ export function fraction(str: string) {
   }
 }
 
-const bracketTypeRe = /^\[(color|length|position|quoted|string):/i
 function bracketWithType(str: string, requiredType?: string) {
   if (str && str.startsWith('[') && str.endsWith(']')) {
     let base: string | undefined
@@ -165,7 +209,7 @@ function bracketWithType(str: string, requiredType?: string) {
             vars.push(g1)
             return match.replace(g1, '--un-calc')
           })
-          .replace(/(-?\d*\.?\d(?!\b-\d.+[,)](?![^+\-/*])\D)(?:%|[a-z]+)?|\))([+\-/*])/g, '$1 $2 ')
+          .replace(/(-?\d*\.?\d(?!-\d.+[,)](?![^+\-/*])\D)(?:%|[a-z]+)?|\))([+\-/*])/g, '$1 $2 ')
           .replace(/--un-calc/g, () => vars.shift()!)
       })
   }
@@ -188,8 +232,10 @@ export function bracketOfPosition(str: string) {
 }
 
 export function cssvar(str: string) {
-  if (str.match(/^\$\S/))
-    return `var(--${escapeSelector(str.slice(1))})`
+  if (/^\$[^\s'"`;{}]/.test(str)) {
+    const [name, defaultValue] = str.slice(1).split(',')
+    return `var(--${escapeSelector(name)}${defaultValue ? `, ${defaultValue}` : ''})`
+  }
 }
 
 export function time(str: string) {
@@ -197,7 +243,7 @@ export function time(str: string) {
   if (!match)
     return
   const [, n, unit] = match
-  const num = parseFloat(n)
+  const num = Number.parseFloat(n)
   if (!Number.isNaN(num)) {
     if (num === 0 && !unit)
       return '0s'
@@ -210,7 +256,7 @@ export function degree(str: string) {
   if (!match)
     return
   const [, n, unit] = match
-  const num = parseFloat(n)
+  const num = Number.parseFloat(n)
   if (!Number.isNaN(num)) {
     if (num === 0)
       return '0'

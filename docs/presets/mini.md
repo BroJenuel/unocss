@@ -24,10 +24,9 @@ The basic preset for UnoCSS, with only the most essential utilities.
   ```
 :::
 
-```ts
-// uno.config.ts
-import { defineConfig } from 'unocss'
+```ts [uno.config.ts]
 import presetMini from '@unocss/preset-mini'
+import { defineConfig } from 'unocss'
 
 export default defineConfig({
   presets: [
@@ -47,7 +46,7 @@ import { presetMini } from 'unocss'
 
 ## Rules
 
-This preset is a subset of [`@unocss/preset-wind`](/presets/wind), containing only the most essential utilities aligned with CSS's properties, but excludes opinioned or complicated utilities introduced in Tailwind (`container`, `animation`, `gradient` etc.). This can be a good starting point for your own custom preset on top of familiar utilities from Tailwind CSS or Windi CSS.
+This preset is a subset of [`@unocss/preset-wind`](/presets/wind), containing only the most essential utilities aligned with CSS's properties, but excludes opinioned or complicated utilities introduced in Tailwind CSS (`container`, `animation`, `gradient` etc.). This can be a good starting point for your own custom preset on top of familiar utilities from Tailwind CSS or Windi CSS.
 
 ## Features
 
@@ -63,7 +62,7 @@ will generate:
 
 ```css
 .dark .dark\:bg-red\:10 {
-  background-color: rgba(248, 113, 113, 0.1);
+  background-color: rgb(248 113 113 / 0.1);
 }
 ```
 
@@ -76,7 +75,7 @@ To opt-in media query based dark mode, you can use `@dark:` variant:
 ```css
 @media (prefers-color-scheme: dark) {
   .\@dark\:bg-red\:10 {
-    background-color: rgba(248, 113, 113, 0.1);
+    background-color: rgb(248 113 113 / 0.1);
   }
 }
 ```
@@ -116,54 +115,23 @@ will generate:
 ### Theme
 You can fully customize your theme property in your config, and UnoCSS will eventually deeply merge it to the default theme.
 
-<!--eslint-skip-->
+:::warning
+`breakpoints` property isn't deeply merged, but overridden, see [Breakpoints](/config/theme#breakpoints).
+:::
 
 ```ts
 presetMini({
   theme: {
     // ...
     colors: {
-      'veryCool': '#0000ff', // class="text-very-cool"
-      'brand': {
-        'primary': 'hsla(var(--hue, 217), 78%, 51%)', //class="bg-brand-primary"
+      veryCool: '#0000ff', // class="text-very-cool"
+      brand: {
+        primary: 'hsl(var(--hue, 217) 78% 51%)', // class="bg-brand-primary"
       }
     },
   }
 })
 ```
-
-To consume the theme in rules:
-
-```ts
-rules: [
-  [/^text-(.*)$/, ([, c], { theme }) => {
-    if (theme.colors[c])
-      return { color: theme.colors[c] }
-  }],
-]
-```
-
-::: warning
-One exception is that UnoCSS gives full control of `breakpoints` to users. When a custom `breakpoints` is provided, the default will be overridden instead of merging.
-:::
-
-With the following example, you will be able to only use the `sm:` and `md:` breakpoint variants:
-
-```ts
-presetMini({
-  theme: {
-    // ...
-    breakpoints: {
-      sm: '320px',
-      md: '640px',
-    },
-  },
-})
-```
-
-::: info
-`verticalBreakpoints` is same as `breakpoints` but for vertical layout.
-:::
 
 ## Options
 
@@ -201,7 +169,7 @@ Generate pseudo selector as `[group=""]` instead of `.group`.
 - **Type:** `string`
 - **Default:** `un-`
 
-Prefix for CSS variables.
+Prefix for CSS custom properties.
 
 ### prefix
 - **Type:** `string | string[]`

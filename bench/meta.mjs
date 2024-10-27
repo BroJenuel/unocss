@@ -1,7 +1,7 @@
-import { fileURLToPath } from 'url'
-import { dirname, resolve } from 'path'
-import { getPackageInfo } from 'local-pkg'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import fs from 'fs-extra'
+import { getPackageInfo } from 'local-pkg'
 
 export const dir = dirname(fileURLToPath(import.meta.url))
 

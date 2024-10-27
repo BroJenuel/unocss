@@ -1,22 +1,28 @@
-import { createFilter } from '@rollup/pluginutils'
 import type { LoadConfigResult, LoadConfigSource } from '@unocss/config'
-import { loadConfig } from '@unocss/config'
 import type { UnocssPluginContext, UserConfig, UserConfigDefaults } from '@unocss/core'
+import process from 'node:process'
+import { createFilter } from '@rollup/pluginutils'
+import { createRecoveryConfigLoader } from '@unocss/config'
 import { BetterMap, createGenerator } from '@unocss/core'
-import { CSS_PLACEHOLDER, IGNORE_COMMENT, INCLUDE_COMMENT } from './constants'
-import { defaultExclude, defaultInclude } from './defaults'
+import { CSS_PLACEHOLDER, IGNORE_COMMENT, INCLUDE_COMMENT, SKIP_COMMENT_RE } from './constants'
+import { defaultPipelineExclude, defaultPipelineInclude } from './defaults'
+import { deprecationCheck } from './deprecation'
 
 export function createContext<Config extends UserConfig<any> = UserConfig<any>>(
   configOrPath?: Config | string,
   defaults: UserConfigDefaults = {},
   extraConfigSources: LoadConfigSource[] = [],
-  resolveConfigResult: (config: LoadConfigResult<Config>) => void = () => {},
+  resolveConfigResult: (config: LoadConfigResult<Config>) => void = () => { },
 ): UnocssPluginContext<Config> {
   let root = process.cwd()
   let rawConfig = {} as Config
   let configFileList: string[] = []
   const uno = createGenerator(rawConfig, defaults)
-  let rollupFilter = createFilter(defaultInclude, defaultExclude)
+  let rollupFilter = createFilter(
+    defaultPipelineInclude,
+    defaultPipelineExclude,
+    { resolve: typeof configOrPath === 'string' ? configOrPath : root },
+  )
 
   const invalidations: Array<() => void> = []
   const reloadListeners: Array<() => void> = []
@@ -26,35 +32,30 @@ export function createContext<Config extends UserConfig<any> = UserConfig<any>>(
   const tasks: Promise<void>[] = []
   const affectedModules = new Set<string>()
 
+  const loadConfig = createRecoveryConfigLoader<Config>()
+
   let ready = reloadConfig()
 
   async function reloadConfig() {
     const result = await loadConfig(root, configOrPath, extraConfigSources, defaults)
     resolveConfigResult(result)
+    deprecationCheck(result.config)
 
     rawConfig = result.config
     configFileList = result.sources
     uno.setConfig(rawConfig)
     uno.config.envMode = 'dev'
-    rollupFilter = createFilter(
-      rawConfig.include || defaultInclude,
-      rawConfig.exclude || defaultExclude,
-    )
+    rollupFilter = rawConfig.content?.pipeline === false
+      ? () => false
+      : createFilter(
+        rawConfig.content?.pipeline?.include || rawConfig.include || defaultPipelineInclude,
+        rawConfig.content?.pipeline?.exclude || rawConfig.exclude || defaultPipelineExclude,
+        { resolve: typeof configOrPath === 'string' ? configOrPath : root },
+      )
     tokens.clear()
-    await Promise.all(modules.map((code, id) => uno.applyExtractors(code, id, tokens)))
+    await Promise.all(modules.map((code, id) => uno.applyExtractors(code.replace(SKIP_COMMENT_RE, ''), id, tokens)))
     invalidate()
     dispatchReload()
-
-    // check preset duplication
-    const presets = new Set<string>()
-    uno.config.presets.forEach((i) => {
-      if (!i.name)
-        return
-      if (presets.has(i.name))
-        console.warn(`[unocss] duplication of preset ${i.name} found, there might be something wrong with your config.`)
-      else
-        presets.add(i.name)
-    })
 
     return result
   }
@@ -79,7 +80,7 @@ export function createContext<Config extends UserConfig<any> = UserConfig<any>>(
     if (id)
       modules.set(id, code)
     const len = tokens.size
-    await uno.applyExtractors(code, id, tokens)
+    await uno.applyExtractors(code.replace(SKIP_COMMENT_RE, ''), id, tokens)
     if (tokens.size > len)
       invalidate()
   }
@@ -98,7 +99,8 @@ export function createContext<Config extends UserConfig<any> = UserConfig<any>>(
   async function flushTasks() {
     const _tasks = [...tasks]
     await Promise.all(_tasks)
-    tasks.splice(0, _tasks.length)
+    if (tasks[0] === _tasks[0])
+      tasks.splice(0, _tasks.length)
   }
 
   return {
@@ -122,7 +124,9 @@ export function createContext<Config extends UserConfig<any> = UserConfig<any>>(
     uno,
     extract,
     getConfig,
-    root,
+    get root() {
+      return root
+    },
     updateRoot,
     getConfigFileList: () => configFileList,
   }

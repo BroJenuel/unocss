@@ -1,6 +1,6 @@
-import type { VariantContext, VariantObject } from '@unocss/core'
+import type { Variant, VariantContext, VariantObject } from '@unocss/core'
 import type { Theme } from '../theme'
-import { handler as h, variantGetParameter } from '../utils'
+import { h, variantGetParameter } from '../utils'
 
 export const variantDataAttribute: VariantObject = {
   name: 'data',
@@ -18,3 +18,28 @@ export const variantDataAttribute: VariantObject = {
     }
   },
 }
+
+function taggedData(tagName: string): Variant {
+  return {
+    name: `${tagName}-data`,
+    match(matcher, ctx: VariantContext<Theme>) {
+      const variant = variantGetParameter(`${tagName}-data-`, matcher, ctx.generator.config.separators)
+      if (variant) {
+        const [match, rest, label] = variant
+        const dataAttribute = h.bracket(match) ?? ctx.theme.data?.[match] ?? ''
+        if (dataAttribute) {
+          return {
+            matcher: `${tagName}-[[data-${dataAttribute}]]${label ? `/${label}` : ''}:${rest}`,
+          }
+        }
+      }
+    },
+  }
+}
+
+export const variantTaggedDataAttributes: Variant[] = [
+  taggedData('group'),
+  taggedData('peer'),
+  taggedData('parent'),
+  taggedData('previous'),
+]

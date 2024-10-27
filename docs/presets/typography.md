@@ -24,7 +24,6 @@ Provides a set of prose classes you can use to add typographic defaults to vanil
   ```
 :::
 
-
 ::: tip
 This preset is included in the `unocss` package, you can also import it from there:
 
@@ -35,11 +34,12 @@ import { presetTypography } from 'unocss'
 
 ## Usage
 
-```js
-// uno.config.ts
+```js [uno.config.js]
 import {
   defineConfig,
-  presetAttributify, presetTypography, presetUno
+  presetAttributify,
+  presetTypography,
+  presetUno
 } from 'unocss'
 
 export default defineConfig({
@@ -80,7 +80,7 @@ Notice: `not-prose` can only be used as a class, not as an attribute.
 
 Apply any font size for body you like and `prose` will scale the styles for
 the respective HTML elements. For instance, `prose text-lg` has body font size
-`1.125rem` and `h1` will with scale with that size 2.25 times. See [all the
+`1.125rem` and `h1` will scale with that size 2.25 times. See [all the
 supported HTML elements](https://github.com/unocss/unocss/blob/main/packages/preset-typography/src/preflights/default.ts).
 
 ### Any color
@@ -174,7 +174,7 @@ The class name to use the typographic utilities. To undo the styles to the eleme
 ### cssExtend
 - **Type:** `Record<string, CSSObject>`
 - **Default:** `undefined`
-  
+
 Extend or override CSS selectors with CSS declaration block.
 
 ### compatibility
@@ -195,10 +195,9 @@ interface TypographyCompatibilityOptions {
 
 ## Example
 
-```ts
-// uno.config.ts
-import { defineConfig, presetAttributify, presetUno } from 'unocss'
+```ts [uno.config.ts]
 import { presetTypography } from '@unocss/preset-typography'
+import { defineConfig, presetAttributify, presetUno } from 'unocss'
 
 export default defineConfig({
   presets: [
@@ -226,5 +225,5 @@ export default defineConfig({
 
 ## Acknowledgement
 
-- [TailwindCSS Typography](https://github.com/tailwindlabs/tailwindcss-typography)
-- [WindiCSS Typography](https://github.com/windicss/windicss/tree/main/src/plugin/typography)
+- [Tailwind CSS Typography](https://github.com/tailwindlabs/tailwindcss-typography)
+- [Windi CSS Typography](https://github.com/windicss/windicss/tree/main/src/plugin/typography)

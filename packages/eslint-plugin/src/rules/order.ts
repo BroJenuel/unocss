@@ -1,21 +1,16 @@
-import { join } from 'node:path'
-import { ESLintUtils } from '@typescript-eslint/utils'
-import { createSyncFn } from 'synckit'
-import type { RuleListener } from '@typescript-eslint/utils/dist/ts-eslint'
 import type { TSESTree } from '@typescript-eslint/types'
-import { distDir } from '../dirs'
+import type { ESLintUtils } from '@typescript-eslint/utils'
+import type { RuleListener } from '@typescript-eslint/utils/ts-eslint'
 import { AST_NODES_WITH_QUOTES, CLASS_FIELDS } from '../constants'
+import { createRule, syncAction } from './_'
 
-const sortClasses = createSyncFn<(classes: string) => Promise<string>>(join(distDir, 'worker-sort.cjs'))
-
-export default ESLintUtils.RuleCreator(name => name)({
+export default createRule({
   name: 'order',
   meta: {
     type: 'layout',
     fixable: 'code',
     docs: {
       description: 'Order of UnoCSS utilities in class attribute',
-      recommended: 'warn',
     },
     messages: {
       'invalid-order': 'UnoCSS utilities are not ordered',
@@ -28,7 +23,11 @@ export default ESLintUtils.RuleCreator(name => name)({
       if (typeof node.value !== 'string' || !node.value.trim())
         return
       const input = node.value
-      const sorted = sortClasses(input).trim()
+      const sorted = syncAction(
+        context.settings.unocss?.configPath,
+        'sort',
+        input,
+      ).trim()
       if (sorted !== input) {
         context.report({
           node,
@@ -67,14 +66,15 @@ export default ESLintUtils.RuleCreator(name => name)({
       },
     }
 
+    const parserServices = context?.sourceCode.parserServices || context.parserServices
     // @ts-expect-error missing-types
-    if (context.parserServices == null || context.parserServices.defineTemplateBodyVisitor == null) {
+    if (parserServices == null || parserServices.defineTemplateBodyVisitor == null) {
       return scriptVisitor
     }
     else {
       // For Vue
       // @ts-expect-error missing-types
-      return context.parserServices?.defineTemplateBodyVisitor(templateBodyVisitor, scriptVisitor)
+      return parserServices?.defineTemplateBodyVisitor(templateBodyVisitor, scriptVisitor)
     }
   },
-})
+}) as any as ESLintUtils.RuleWithMeta<[], ''>

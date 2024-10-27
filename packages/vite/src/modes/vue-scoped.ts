@@ -1,10 +1,10 @@
+import type { UnocssPluginContext } from '@unocss/core'
 import type { Plugin } from 'vite'
 import { createFilter } from '@rollup/pluginutils'
-import type { UnocssPluginContext } from '@unocss/core'
-import { defaultExclude } from '../integration'
+import { defaultPipelineExclude } from '../integration'
 
 export function VueScopedPlugin({ uno, ready }: UnocssPluginContext): Plugin {
-  let filter = createFilter([/\.vue$/], defaultExclude)
+  let filter = createFilter([/\.vue$/], defaultPipelineExclude)
 
   async function transformSFC(code: string) {
     const { css } = await uno.generate(code)
@@ -18,15 +18,24 @@ export function VueScopedPlugin({ uno, ready }: UnocssPluginContext): Plugin {
     enforce: 'pre',
     async configResolved() {
       const { config } = await ready
-      filter = createFilter(
-        config.include || [/\.vue$/],
-        config.exclude || defaultExclude,
-      )
+      filter = config.content?.pipeline === false
+        ? () => false
+        : createFilter(
+          config.content?.pipeline?.include ?? config.include ?? [/\.vue$/],
+          config.content?.pipeline?.exclude ?? config.exclude ?? defaultPipelineExclude,
+        )
     },
-    transform(code, id) {
-      if (!filter(id))
+    async transform(code, id) {
+      if (!filter(id) || !id.endsWith('.vue'))
         return
-      return transformSFC(code)
+      const css = await transformSFC(code)
+
+      if (css) {
+        return {
+          code: css,
+          map: null,
+        }
+      }
     },
     handleHotUpdate(ctx) {
       const read = ctx.read

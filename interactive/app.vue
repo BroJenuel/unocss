@@ -14,6 +14,7 @@ useHead({
     { lang: 'en-US' },
   ],
   meta: [
+    { name: 'robots', content: 'noindex, nofollow' },
     { property: 'og:type', content: 'website' },
     { name: 'og:title', content: title },
     { name: 'og:description', content: description },
@@ -32,7 +33,7 @@ useHead({
 </script>
 
 <template>
-  <main class="pt2 text-center font-sans" w-full h-screen of-hidden relative>
+  <main class="pt2 text-center font-sans" h-full w-full overflow="hidden">
     <NuxtPage />
   </main>
 </template>
@@ -49,11 +50,13 @@ html.dark {
   background: #121212;
   color: white;
 }
-html.dark .shiki-light {
-  display: none;
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark);
 }
-html:not(.dark) .shiki-dark {
-  display: none;
+html:not(.dark) .shiki,
+html:not(.dark) .shiki span {
+  color: var(--shiki-light);
 }
 html.dark ::-moz-selection  {
   background: #444;
@@ -72,5 +75,46 @@ div[row=""] {
 }
 div[block=""] {
   display: block;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2147483646;
+}
+.dark::view-transition-old(root) {
+  z-index: 2147483646;
+}
+.dark::view-transition-new(root) {
+  z-index: 1;
+}
+.scrolls::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrolls {
+  overflow: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cm-ttc-c-thumb) var(--cm-ttc-c-track);
+}
+.scrolls::-webkit-scrollbar-track {
+  background: var(--cm-ttc-c-track);
+}
+.scrolls::-webkit-scrollbar-thumb {
+  background-color: var(--cm-ttc-c-thumb);
+  border: 2px solid var(--cm-ttc-c-thumb);
+}
+.scrolls::-webkit-scrollbar-thumb,
+.scrolls-rounded::-webkit-scrollbar-track {
+  border-radius: 3px;
+}
+.scrolls::-webkit-scrollbar-corner {
+  background-color: var(--cm-ttc-c-track);
 }
 </style>

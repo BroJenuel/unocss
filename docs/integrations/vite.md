@@ -4,6 +4,15 @@ description: The Vite plugin for UnoCSS (@unocss/vite).
 outline: deep
 ---
 
+<script setup lang="ts">
+import { examples } from '../.vitepress/content'
+
+const playgrounds = examples.reduce((acc, cur) => {
+  acc[cur.name] = cur
+  return acc
+}, {})
+</script>
+
 # Vite Plugin
 
 The Vite plugin ships with the `unocss` package.
@@ -24,8 +33,7 @@ The Vite plugin ships with the `unocss` package.
 
 Install the plugin:
 
-```ts
-// vite.config.ts
+```ts [vite.config.ts]
 import UnoCSS from 'unocss/vite'
 import { defineConfig } from 'vite'
 
@@ -38,8 +46,7 @@ export default defineConfig({
 
 Create a `uno.config.ts` file:
 
-```ts
-// uno.config.ts
+```ts [uno.config.ts]
 import { defineConfig } from 'unocss'
 
 export default defineConfig({
@@ -49,8 +56,7 @@ export default defineConfig({
 
 Add `virtual:uno.css` to your main entry:
 
-```ts
-// main.ts
+```ts [main.ts]
 import 'virtual:uno.css'
 ```
 
@@ -76,9 +82,9 @@ This mode will inject generated CSS to Vue SFCs `<style scoped>` for isolation.
 
 ### `shadow-dom`
 
-Since `Web Components` uses `Shadow DOM`, there is no way to style content directly from a global stylesheet (unless you use `custom css vars`, those will penetrate the `Shadow DOM`), you need to inline the generated css by the plugin into the `Shadow DOM` style.
+Since `Web Components` uses `Shadow DOM`, there is no way to style content directly from a global stylesheet (unless you use `CSS custom properties`, those will penetrate the `Shadow DOM`), you need to inline the generated CSS by the plugin into the `Shadow DOM` style.
 
-To inline the generated css, you only need to configure the plugin mode to `shadow-dom` and include `@unocss-placeholder` magic placeholder on each web component style css block. If you are defining your Web Components in Vue SFCs and want to define custom styles alongside UnoCSS, you can wrap placeholder in a CSS comment to avoid syntax errors in your IDE.
+To inline the generated CSS, you only need to configure the plugin mode to `shadow-dom` and include `@unocss-placeholder` magic placeholder on each web component style CSS block. If you are defining your Web Components in Vue SFCs and want to define custom styles alongside UnoCSS, you can wrap placeholder in a CSS comment to avoid syntax errors in your IDE.
 
 ### `per-module` (experimental)
 
@@ -90,7 +96,7 @@ This mode will generate a CSS sheet for each code chunk on build, great for MPA.
 
 ## Edit classes in DevTools
 
-Because of limitation of "on-demand" where the DevTools don’t know those you haven’t used in your source code yet. So if you want to try how things work by directly changing the classes in DevTools, just add the following lines to your main entry.
+Because of limitation of "on-demand" where the DevTools don't know those you haven't used in your source code yet. So if you want to try how things work by directly changing the classes in DevTools, just add the following lines to your main entry.
 
 ```ts
 import 'uno.css'
@@ -105,14 +111,17 @@ Please use it with caution, under the hood we use [`MutationObserver`](https://d
 
 Some UI/App frameworks have some caveats that must be fixed to make it work, if you're using one of the following frameworks, just apply the suggestions.
 
+### VanillaJS / TypeScript
+
+When using VanillaJS or TypeScript, you need to add `js` and `ts` files extensions to allow UnoCSS read and parse the content, by default `js` and `ts` files are excluded, check out the [Extracting from Build Tools Pipeline](/guide/extracting#extracting-from-build-tools-pipeline) section.
+
 ### React
 
 If you're using `@vitejs/plugin-react`:
 
-```ts
-// vite.config.js
-import UnoCSS from 'unocss/vite'
+```ts [vite.config.ts]
 import React from '@vitejs/plugin-react'
+import UnoCSS from 'unocss/vite'
 
 export default {
   plugins: [
@@ -126,10 +135,9 @@ If you're using `@unocss/preset-attributify` you should remove `tsc` from the `b
 
 If you are using `@vitejs/plugin-react` with `@unocss/preset-attributify`, you must add the plugin before `@vitejs/plugin-react`.
 
-```ts
-// vite.config.js
-import UnoCSS from 'unocss/vite'
+```ts [vite.config.ts]
 import React from '@vitejs/plugin-react'
+import UnoCSS from 'unocss/vite'
 
 export default {
   plugins: [
@@ -141,12 +149,13 @@ export default {
 
 You have a `React` example project on [examples/vite-react](https://github.com/unocss/unocss/tree/main/examples/vite-react) directory  using both plugins, check the scripts on `package.json` and its Vite configuration file.
 
+<ContentExample :item="playgrounds['vite-react']"  class="Link" integrations />
+
 ### Preact
 
 If you're using `@preact/preset-vite`:
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
 import Preact from '@preact/preset-vite'
 import UnoCSS from 'unocss/vite'
 
@@ -160,8 +169,7 @@ export default {
 
 or if you're using `@prefresh/vite`:
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
 import Prefresh from '@prefresh/vite'
 import UnoCSS from 'unocss/vite'
 
@@ -175,7 +183,9 @@ export default {
 
 If you're using `@unocss/preset-attributify` you should remove `tsc` from the `build` script.
 
-You have a `Preact` example project on [examples/vite-preact](https://github.com/unocss/unocss/tree/main/examples/vite-preact) directory  using both plugins, check the scripts on `package.json` and its Vite configuration file.
+You have a `Preact` example project on [examples/vite-preact](https://github.com/unocss/unocss/tree/main/examples/vite-preact) directory using both plugins, check the scripts on `package.json` and its Vite configuration file.
+
+<ContentExample :item="playgrounds['vite-preact']"  class="Link" integrations />
 
 ### Svelte
 
@@ -185,17 +195,16 @@ To support `class:foo` and `class:foo={bar}` add the plugin and configure `extra
 
 You can use simple rules with `class:`, for example `class:bg-red-500={foo}` or using `shortcuts` to include multiples rules, see `src/App.svelte` on linked example project below.
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-import UnoCSS from 'unocss/vite'
 import extractorSvelte from '@unocss/extractor-svelte'
+import UnoCSS from 'unocss/vite'
 
 export default {
   plugins: [
     UnoCSS({
       extractors: [
-        extractorSvelte
+        extractorSvelte(),
       ],
       /* more options */
     }),
@@ -204,7 +213,7 @@ export default {
 }
 ```
 
-You have a `Vite + Svelte` example project on [examples/vite-svelte](https://github.com/unocss/unocss/tree/main/examples/vite-svelte) directory.
+<ContentExample :item="playgrounds['vite-svelte']"  class="Link" integrations />
 
 ### Sveltekit
 
@@ -212,18 +221,17 @@ To support `class:foo` and `class:foo={bar}` add the plugin and configure `extra
 
 You can use simple rules with `class:`, for example `class:bg-red-500={foo}` or using `shortcuts` to include multiples rules, see `src/routes/+layout.svelte` on linked example project below.
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
 import { sveltekit } from '@sveltejs/kit/vite'
-import UnoCSS from 'unocss/vite'
 import extractorSvelte from '@unocss/extractor-svelte'
+import UnoCSS from 'unocss/vite'
 
 /** @type {import('vite').UserConfig} */
 const config = {
   plugins: [
     UnoCSS({
       extractors: [
-        extractorSvelte()
+        extractorSvelte(),
       ],
       /* more options */
     }),
@@ -232,7 +240,11 @@ const config = {
 }
 ```
 
-You have a `SvelteKit` example project in [examples/sveltekit](https://github.com/unocss/unocss/tree/main/examples/sveltekit) directory.
+<ContentExample :item="playgrounds['sveltekit']"  class="Link mb-4" integrations />
+
+<ContentExample :item="playgrounds['sveltekit-preprocess']"  class="Link mb-4" integrations />
+
+<ContentExample :item="playgrounds['sveltekit-scoped']"  class="Link" integrations />
 
 ### Web Components
 
@@ -240,8 +252,7 @@ To work with web components you need to enable `shadow-dom` mode on the plugin.
 
 Don't forget to remove the import for `uno.css` since the `shadow-dom` mode will not expose it and the application will not work.
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
 import UnoCSS from 'unocss/vite'
 
 export default {
@@ -254,7 +265,7 @@ export default {
 }
 ```
 
-On each `web component` just add `@unocss-placeholder` to its style css block:
+On each `web component` just add `@unocss-placeholder` to its style CSS block:
 ```ts
 const template = document.createElement('template')
 template.innerHTML = `
@@ -291,8 +302,7 @@ The `part-[<part-name>]:<rule|shortcut>` will work only with this plugin using t
 
 The plugin uses `nth-of-type` to avoid collisions with multiple parts in the same web component and for the same parts on distinct web components, you don't need to worry about it, the plugin will take care for you.
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
 import UnoCSS from 'unocss/vite'
 
 export default {
@@ -335,36 +345,36 @@ template.innerHTML = `
 </div>
 `
 ```
+<ContentExample :item="playgrounds['vite-lit']"  class="Link" integrations />
 
 ### Solid
 
+You need to add the `vite-plugin-solid` plugin after UnoCSS's plugin.
 
-```ts
-// vite.config.js
-import solidPlugin from 'vite-plugin-solid'
+```ts [vite.config.ts]
 import UnoCSS from 'unocss/vite'
+import solidPlugin from 'vite-plugin-solid'
 
 export default {
   plugins: [
-    solidPlugin(),
     UnoCSS({
       /* options */
     }),
+    solidPlugin(),
   ],
 }
 ```
 
-You have a `Vite + Solid` example project on [examples/vite-solid](https://github.com/unocss/unocss/tree/main/examples/vite-solid) directory.
+<ContentExample :item="playgrounds['vite-solid']"  class="Link" integrations />
 
 ### Elm
 
 You need to add the `vite-plugin-elm` plugin before UnoCSS's plugin.
 
-```ts
-// vite.config.js
+```ts [vite.config.ts]
+import UnoCSS from 'unocss/vite'
 import { defineConfig } from 'vite'
 import Elm from 'vite-plugin-elm'
-import UnoCSS from 'unocss/vite'
 
 export default defineConfig({
   plugins: [
@@ -374,7 +384,35 @@ export default defineConfig({
 })
 ```
 
-You have a `Vite + Elm` example project on [examples/vite-elm](https://github.com/unocss/unocss/tree/main/examples/vite-elm) directory.
+<ContentExample :item="playgrounds['vite-elm']"  class="Link" integrations />
+
+## Legacy
+
+If `@vitejs/plugin-legacy` with `renderModernChunks: false`, your need add it to `unocss` option
+
+```ts
+import legacy from '@vitejs/plugin-legacy'
+import vue from '@vitejs/plugin-vue'
+import { presetUno } from 'unocss'
+import Unocss from 'unocss/vite'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    Unocss({
+      presets: [presetUno()],
+      legacy: {
+        renderModernChunks: false,
+      },
+    }),
+    legacy({
+      targets: ['defaults', 'not IE 11'],
+      renderModernChunks: false,
+    }),
+  ],
+})
+```
 
 ## License
 

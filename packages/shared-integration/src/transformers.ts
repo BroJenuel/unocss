@@ -1,9 +1,9 @@
-import type { SourceCodeTransformerEnforce, UnocssPluginContext } from '@unocss/core'
-import MagicString from 'magic-string'
 import type { EncodedSourceMap } from '@ampproject/remapping'
+import type { SourceCodeTransformerEnforce, UnocssPluginContext } from '@unocss/core'
 import remapping from '@ampproject/remapping'
-import type { SourceMap } from 'rollup'
-import { IGNORE_COMMENT } from './constants'
+import MagicString from 'magic-string'
+import { IGNORE_COMMENT, SKIP_COMMENT_RE } from './constants'
+import { restoreSkipCode, transformSkipCode } from './utils'
 
 export async function applyTransformers(
   ctx: UnocssPluginContext,
@@ -18,9 +18,11 @@ export async function applyTransformers(
   if (!transformers.length)
     return
 
+  const skipMap = new Map<string, string>()
   let code = original
-  let s = new MagicString(code)
+  let s = new MagicString(transformSkipCode(code, skipMap, SKIP_COMMENT_RE, '@unocss-skip-placeholder-'))
   const maps: EncodedSourceMap[] = []
+
   for (const t of transformers) {
     if (t.idFilter) {
       if (!t.idFilter(id))
@@ -31,17 +33,21 @@ export async function applyTransformers(
     }
     await t.transform(s, id, ctx)
     if (s.hasChanged()) {
-      code = s.toString()
+      code = restoreSkipCode(s.toString(), skipMap)
       maps.push(s.generateMap({ hires: true, source: id }) as EncodedSourceMap)
       s = new MagicString(code)
     }
   }
 
   if (code !== original) {
-    ctx.affectedModules.add(id)
+    // Investigate if this is safe to remove: https://github.com/unocss/unocss/pull/3741
+    // ctx.affectedModules.add(id)
     return {
       code,
-      map: remapping(maps, () => null) as SourceMap,
+      map: remapping(maps, (_, ctx) => {
+        ctx.content = code
+        return null
+      }) as any,
     }
   }
 }

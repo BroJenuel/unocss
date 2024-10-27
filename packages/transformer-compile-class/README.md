@@ -11,9 +11,9 @@ npm i -D @unocss/transformer-compile-class
 ```
 
 ```ts
+import transformerCompileClass from '@unocss/transformer-compile-class'
 // uno.config.ts
 import { defineConfig } from 'unocss'
-import transformerCompileClass from '@unocss/transformer-compile-class'
 
 export default defineConfig({
   // ...
@@ -52,7 +52,7 @@ Will be compiled to:
 }
 .uno-0qw2gr:hover {
   --un-text-opacity: 1;
-  color: rgba(248, 113, 113, var(--un-text-opacity));
+  color: rgb(248 113 113 / var(--un-text-opacity));
 }
 @media (min-width: 640px) {
   .uno-qlmcrp {

@@ -1,7 +1,7 @@
 import { createGenerator, toEscapedSelector as e } from '@unocss/core'
-import presetUno from '@unocss/preset-uno'
 import { autocompleteExtractorAttributify, presetAttributify, variantAttributify } from '@unocss/preset-attributify'
-import { describe, expect, test } from 'vitest'
+import presetUno from '@unocss/preset-uno'
+import { describe, expect, it } from 'vitest'
 
 describe('attributify', async () => {
   const uno = createGenerator({
@@ -38,16 +38,19 @@ describe('attributify', async () => {
   describe('cases', () => {
     const cases = import.meta.glob('./cases/preset-attributify/*/input.html', { as: 'raw' })
     for (const [path, input] of Object.entries(cases)) {
-      test(path, async () => {
-        const { css } = await uno.generate(await input(), { preflights: false })
-        await expect(css).toMatchFileSnapshot(path.replace('input.html', 'output.css'))
+      it(path, async () => {
+        const { css, matched } = await uno.generate(await input(), { preflights: false })
+        await expect(`${[...matched].join('\n')}\n`)
+          .toMatchFileSnapshot(path.replace('input.html', 'matched.txt'))
+        await expect(css)
+          .toMatchFileSnapshot(path.replace('input.html', 'output.css'))
       })
     }
   })
 
   const fixture1 = (await import('./cases/preset-attributify/case-1/input.html?raw')).default
 
-  test('variant', async () => {
+  it('variant', async () => {
     const variant = variantAttributify({
       prefix: 'un-',
       prefixedOnly: false,
@@ -64,7 +67,7 @@ describe('attributify', async () => {
       .toMatchSnapshot()
   })
 
-  test('prefixedOnly', async () => {
+  it('prefixedOnly', async () => {
     const uno = createGenerator({
       presets: [
         presetAttributify({ strict: true, prefix: 'un-', prefixedOnly: true }),
@@ -77,7 +80,7 @@ describe('attributify', async () => {
   })
 
   describe('autocomplete extractor', async () => {
-    test('without prefix', async () => {
+    it('without prefix', async () => {
       const res = await autocompleteExtractorAttributify().extract({
         content: fixture1,
         cursor: 187,
@@ -107,7 +110,7 @@ describe('attributify', async () => {
         .toMatchInlineSnapshot('"blue-400"')
     })
 
-    test('with prefix', async () => {
+    it('with prefix', async () => {
       const fixtureWithPrefix = `
 <div un-text-cent>
   <div un-text="cent
@@ -121,25 +124,18 @@ describe('attributify', async () => {
       expect(res1).not.toBeNull()
 
       expect(res1!.extracted).toMatchInlineSnapshot('"text-cent"')
-      expect(res1!.transformSuggestions!([`${res1!.extracted}1`, `${res1!.extracted}2`]))
-        .toMatchInlineSnapshot(`
-          [
-            "un-text-cent1",
-            "un-text-cent2",
-          ]
-        `)
 
       const reversed1 = res1!.resolveReplacement(`${res1!.extracted}1`)
       expect(reversed1).toMatchInlineSnapshot(`
         {
           "end": 18,
           "replacement": "text-cent1",
-          "start": 6,
+          "start": 9,
         }
       `)
 
       expect(fixtureWithPrefix.slice(reversed1.start, reversed1.end))
-        .toMatchInlineSnapshot('"un-text-cent"')
+        .toMatchInlineSnapshot('"text-cent"')
 
       const res2 = await autocompleteExtractorAttributify({ prefix: 'un-' }).extract({
         content: fixtureWithPrefix,
@@ -170,7 +166,7 @@ describe('attributify', async () => {
         .toMatchInlineSnapshot('"cent"')
     })
 
-    test('only prefix', async () => {
+    it('only prefix', async () => {
       const fixtureOnlyPrefix = `
 <div text-cent>
   <div text="cent
@@ -192,7 +188,7 @@ describe('attributify', async () => {
     })
   })
 
-  test('with trueToNonValued', async () => {
+  it('with trueToNonValued', async () => {
     const uno = createGenerator({
       presets: [
         presetAttributify({ trueToNonValued: true }),
@@ -206,15 +202,45 @@ describe('attributify', async () => {
     expect(css).toMatchSnapshot()
   })
 
-  test('with incomplete element', async () => {
+  it('with incomplete element', async () => {
     await uno.generate('<div class="w-fullllllllllllll"')
   }, 20)
 
-  test('merge attribute name and value-only', async () => {
+  it('merge attribute name and value-only', async () => {
     const { css } = await uno.generate(`
       <div bg="[&:nth-child(3)]:[#123456]"></div>
       <div class="foo" bg="[&.foo]:[&:nth-child(3)]:[#123]"></div>
     `, { preflights: false })
     expect(css).toMatchSnapshot()
+  })
+
+  it('support inline arrow functions', async () => {
+    const uno = createGenerator({
+      presets: [
+        presetAttributify(),
+        presetUno(),
+      ],
+    })
+    const { css: css1 } = await uno.generate('<div v-for="(v, i) of [0].map(() => 1)" h-1px />', { preflights: false })
+    expect(css1).toMatchSnapshot()
+
+    const { css: css2 } = await uno.generate(`
+      <div
+        h-1px
+        v-for="(
+          v, i
+        ) of [0].map(() => 1)"
+      />
+    `, { preflights: false })
+    expect(css2).toMatchSnapshot()
+
+    const { css: css3 } = await uno.generate(`
+      <div v-for="(
+          v, i
+        ) of [0].map(() => 1)"
+        h-1px
+      />
+    `, { preflights: false })
+    expect(css3).toMatchSnapshot()
   })
 })

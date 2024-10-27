@@ -15,35 +15,44 @@ This package is in an experimental state right now. It doesn't follow semver, an
 
 ## Install
 
-```bash
-npm i -D @unocss/postcss
-```
+::: code-group
+  ```bash [pnpm]
+  pnpm add -D unocss @unocss/postcss
+  ```
+  ```bash [yarn]
+  yarn add -D unocss @unocss/postcss
+  ```
+  ```bash [npm]
+  npm install -D unocss @unocss/postcss
+  ```
+:::
 
-```ts
-// postcss.config.cjs
-module.exports = {
-  plugins: {
-    '@unocss/postcss': {
-      // Optional
-      content: ['**/*.{html,js,ts,jsx,tsx,vue,svelte,astro}'],
-    },
-  },
+```ts [postcss.config.mjs]
+import UnoCSS from '@unocss/postcss'
+
+export default {
+  plugins: [
+    UnoCSS(),
+  ],
 }
 ```
 
-```ts
-// uno.config.ts
+```ts [uno.config.ts]
 import { defineConfig, presetUno } from 'unocss'
 
 export default defineConfig({
+  content: {
+    filesystem: [
+      '**/*.{html,js,ts,jsx,tsx,vue,svelte,astro}',
+    ],
+  },
   presets: [
     presetUno(),
   ],
 })
 ```
 
-```css
-/* style.css */
+```css [style.css]
 @unocss;
 ```
 
@@ -51,12 +60,11 @@ export default defineConfig({
 
 ### `@unocss`
 
-`@unocss` at-rule is a placeholder. It will be replaced by the generated CSS. 
+`@unocss` at-rule is a placeholder. It will be replaced by the generated CSS.
 
 You can also inject each layer individually:
 
-```css
-/* style.css */
+```css [style.css]
 @unocss preflights;
 @unocss default;
 
@@ -64,13 +72,13 @@ You can also inject each layer individually:
   Fallback layer. It's always recommended to include.
   Only unused layers will be injected here.
 */
-@unocss; 
+@unocss;
 ```
 
 If you want to include all layers no matter whether they are previously included or not, you can use `@unocss all`. This is useful if you want to include generated CSS in multiple files.
 
 ```css
-@unocss all; 
+@unocss all;
 ```
 
 ### `@apply`

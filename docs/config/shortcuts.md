@@ -1,11 +1,11 @@
 ---
 title: Shortcuts
-description: The shortcuts functionality that UnoCSS provides is similar to Windi CSS’s one.
+description: The shortcuts functionality that UnoCSS provides is similar to Windi CSS's one.
 ---
 
 # Shortcuts
 
-Shortcuts could let you combine multiple rules into a single shorthand, inspired by [Windi CSS's](https://windicss.org/features/shortcuts.html).
+Shortcuts let you combine multiple rules into a single shorthand, inspired by [Windi CSS's](https://windicss.org/features/shortcuts.html).
 
 ## Usage
 
@@ -17,13 +17,13 @@ shortcuts: {
   'btn': 'py-2 px-4 font-semibold rounded-lg shadow-md',
   'btn-green': 'text-white bg-green-500 hover:bg-green-700',
   // single utility alias
-  'red': 'text-red-100'
+  'red': 'text-red-100',
 }
 ```
 
 In addition to the plain mapping, UnoCSS also allows you to define dynamic shortcuts.
 
-Similar to [Rules](/config/rules), a dynamic shortcut is the combination of a matcher RegExp and a handler function.
+Similar to [Rules](/config/rules), a dynamic shortcut is the combination of a matcher `RegExp` and a handler function.
 
 ```ts
 shortcuts: [
@@ -45,10 +45,10 @@ With this, we could use `btn-green` and `btn-red` to generate the following CSS:
   padding-left: 1rem;
   padding-right: 1rem;
   --un-bg-opacity: 1;
-  background-color: rgba(74, 222, 128, var(--un-bg-opacity));
+  background-color: rgb(74 222 128 / var(--un-bg-opacity));
   border-radius: 0.5rem;
   --un-text-opacity: 1;
-  color: rgba(220, 252, 231, var(--un-text-opacity));
+  color: rgb(220 252 231 / var(--un-text-opacity));
 }
 .btn-red {
   padding-top: 0.5rem;
@@ -56,9 +56,9 @@ With this, we could use `btn-green` and `btn-red` to generate the following CSS:
   padding-left: 1rem;
   padding-right: 1rem;
   --un-bg-opacity: 1;
-  background-color: rgba(248, 113, 113, var(--un-bg-opacity));
+  background-color: rgb(248 113 113 / var(--un-bg-opacity));
   border-radius: 0.5rem;
   --un-text-opacity: 1;
-  color: rgba(254, 226, 226, var(--un-text-opacity));
+  color: rgb(254 226 226 / var(--un-text-opacity));
 }
 ```

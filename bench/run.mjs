@@ -1,10 +1,10 @@
-/* eslint-disable no-console */
-import { execSync } from 'child_process'
-import { join } from 'path'
-import fs from 'fs-extra'
+/* eslint-disable no-console, antfu/no-top-level-await */
+import { execSync } from 'node:child_process'
+import { join } from 'node:path'
 import { escapeSelector } from '@unocss/core'
-import { dir, getVersions, targets } from './meta.mjs'
+import fs from 'fs-extra'
 import { classes, writeMock } from './gen.mjs'
+import { dir, getVersions, targets } from './meta.mjs'
 
 const times = 200
 const metric = '75%' // average / min / 50% / 75% / 95% / 99%
@@ -51,13 +51,12 @@ async function report() {
     return [target, result.filter(i => i.name === target).sort((a, b) => a.time - b.time)[0].time]
   })
 
-  const percentile = percent =>
-    targets.map((target) => {
-      const items = result.filter(i => i.name === target)
-      const sorted = items.sort((a, b) => a.time - b.time)
-      const index = Math.floor(sorted.length * percent)
-      return [target, sorted[index].time]
-    })
+  const percentile = percent => targets.map((target) => {
+    const items = result.filter(i => i.name === target)
+    const sorted = items.sort((a, b) => a.time - b.time)
+    const index = Math.floor(sorted.length * percent)
+    return [target, sorted[index].time]
+  })
   const fifty = percentile(0.5)
   const seventyFive = percentile(0.75)
   const ninetyFive = percentile(0.95)

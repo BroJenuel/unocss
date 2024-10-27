@@ -21,6 +21,10 @@ hero:
       text: Playground
       link: https://unocss.dev/play/
       target: _blank
+    - theme: alt
+      text: Tutorial
+      link: https://tutorial.unocss.dev/
+      target: _blank
 
 features:
   - icon: <span class="i-carbon:ibm-toolchain"></span>
@@ -30,7 +34,7 @@ features:
     linkText: Getting Started
   - icon: <span class="i-carbon-meter-alt"></span>
     title: Instant
-    details: No parsing, no AST, no scanning. It’s 5x faster than Windi CSS or Tailwind JIT.
+    details: No parsing, no AST, no scanning. It's 5x faster than Windi CSS or Tailwind CSS JIT.
   - icon: <span class="i-carbon-wind-gusts"></span>
     title: Lightweight
     details: "Zero deps and browser friendly: ~6kb min+brotli"
@@ -52,7 +56,7 @@ features:
   - icon: <span class="i-carbon-face-wink hover:i-carbon-face-satisfied"></span>
     title: Pure CSS Icons
     details: "Use any icon as a single class"
-    link: /presets/icons 
+    link: /presets/icons
     linkText: "@unocss/preset-icons"
   - icon: <span class="i-carbon:group-objects"></span>
     title: Variant Groups

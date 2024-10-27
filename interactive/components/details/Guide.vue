@@ -6,12 +6,12 @@ const { item } = defineProps<{
   item: GuideItem
 }>()
 
-let component = $shallowRef<any>()
+const component = shallowRef<any>()
 watch(
   () => item,
   async () => {
-    component = undefined
-    component = await item.component().then(i => i.default)
+    component.value = undefined
+    component.value = await item.component().then(i => i.default)
   },
   { immediate: true },
 )
@@ -20,7 +20,7 @@ watch(
 <template>
   <DetailsBase v-if="component" :title="item.title">
     <div class="markdown-body max-w-full mt4 text-left" :class="isDark ? 'dark' : 'light'">
-      <component :is="component" />
+      <Component :is="component" />
     </div>
   </DetailsBase>
   <div v-else ma animate-pulse animate-duration-600>

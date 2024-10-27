@@ -11,9 +11,9 @@ npm i -D @unocss/transformer-directives
 ```
 
 ```ts
+import transformerDirectives from '@unocss/transformer-directives'
 // uno.config.ts
 import { defineConfig } from 'unocss'
-import transformerDirectives from '@unocss/transformer-directives'
 
 export default defineConfig({
   // ...
@@ -46,7 +46,7 @@ Will be transformed to:
 
 #### CSS Variable Style
 
-To be compatible with vanilla CSS, you can use CSS Variables to replace the `@apply` directive.
+To be compatible with vanilla CSS, you can use CSS custom properties to replace the `@apply` directive.
 
 ```css
 .custom-div {

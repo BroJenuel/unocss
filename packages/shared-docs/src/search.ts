@@ -1,11 +1,11 @@
 import type { Rule, UnoGenerator, Variant } from '@unocss/core'
+import type { Ref } from 'vue'
+import type { DocItem, GuideItem, ResultItem, RuleItem } from './types'
+import { createAutocomplete } from '@unocss/autocomplete'
 import { notNull, uniq } from '@unocss/core'
 import { watchAtMost } from '@vueuse/core'
 import Fuse from 'fuse.js'
-import { createAutocomplete } from '@unocss/autocomplete'
-import type { Ref } from 'vue'
-import { computed, reactive, toRaw } from 'vue'
-import type { DocItem, GuideItem, ResultItem, RuleItem } from './types'
+import { computed, shallowReactive, toRaw } from 'vue'
 import { extractColors, formatCSS, sampleArray } from './utils'
 
 export interface SearchState {
@@ -16,11 +16,11 @@ export interface SearchState {
 }
 
 export function createSearch(
-  { uno, docs, guides, limit = 50 }: SearchState,
+  { uno, docs, guides, limit = 25 }: SearchState,
 ) {
   const ac = createAutocomplete(uno)
-  const matchedMap = reactive(new Map<string, RuleItem>())
-  const featuresMap = reactive(new Map<string, Set<RuleItem>>())
+  const matchedMap = shallowReactive(new Map<string, RuleItem>())
+  const featuresMap = shallowReactive(new Map<string, Set<RuleItem>>())
 
   let fuseCollection: ResultItem[] = []
 
@@ -50,8 +50,14 @@ export function createSearch(
       includeScore: true,
     },
   )
-  const docsFuse = computed(() => new Fuse<ResultItem>(docs.value, { keys: ['title', 'summary'], isCaseSensitive: false }))
-  const guideFuse = new Fuse<ResultItem>(guides, { keys: ['title'], isCaseSensitive: false })
+  const docsFuse = computed(() => new Fuse<ResultItem>(docs.value, {
+    keys: ['title', 'summary'],
+    isCaseSensitive: false,
+  }))
+  const guideFuse = new Fuse<ResultItem>(guides, {
+    keys: ['title'],
+    isCaseSensitive: false,
+  })
 
   const az09 = Array.from('abcdefghijklmnopqrstuvwxyz01234567890')
 
@@ -59,13 +65,16 @@ export function createSearch(
 
   let _fusePrepare: Promise<void> | undefined
   async function search(input: string) {
+    input = input.trim()
+    if (!input)
+      return []
+
+    const timeStart = performance.now()
     _fusePrepare = _fusePrepare || prepareFuse()
     await _fusePrepare
 
-    input = input.trim()
-
     // mdn
-    if (input.match(/^(mdn|doc):/)) {
+    if (input.startsWith('mdn:') || input.startsWith('doc:')) {
       input = input.slice(4).trim()
       if (!input)
         return docs.value.slice(0, limit)
@@ -73,7 +82,7 @@ export function createSearch(
     }
 
     // guide
-    if (input.match(/^guide:/)) {
+    if (input.startsWith('guide:')) {
       input = input.slice(6).trim()
       if (!input)
         return guides.slice(0, limit)
@@ -81,7 +90,7 @@ export function createSearch(
     }
 
     // random
-    if (input.match(/^rand(om)?:/))
+    if (input.startsWith('rand:') || input.startsWith('random:'))
       return sampleArray(fuseCollection, limit)
 
     const parts = input.split(/\s/g).filter(notNull)
@@ -91,7 +100,8 @@ export function createSearch(
       ...parts,
       ...parts.map(i => `${i}-`),
       ...parts.flatMap(i => az09.map(a => `${i}-${a}`)),
-    ]).then(r => generateForMultiple(r))
+    ])
+      .then(r => generateForMultiple(r))
 
     const searchResult = uniq([
       ...fuse.search(input, { limit: limit * 2 }),
@@ -102,10 +112,15 @@ export function createSearch(
       .map(i => i.item))
       .slice(0, limit)
 
-    return uniq([
+    const result = uniq([
       ...extract,
       ...searchResult,
     ].filter(notNull))
+
+    const duration = performance.now() - timeStart
+    // eslint-disable-next-line no-console
+    console.log('Search:', input, 'Duration:', duration, 'ms', 'Results:', result.length, '/', fuseCollection.length)
+    return result
   }
 
   async function suggestMultiple(str: string[]) {
@@ -118,6 +133,7 @@ export function createSearch(
 
   async function prepareFuse() {
     await Promise.all(Array.from(await enumerateAutocomplete())
+      .slice(0, 500)
       .map(async i => await generateFor(i)))
   }
 
@@ -131,11 +147,9 @@ export function createSearch(
       ...a2zd.map(j => `${i}${j}`),
     ])
 
-    await Promise.all(keys.map(key =>
-      ac
-        .suggest(key)
-        .then(i => i.forEach(j => matched.add(j))),
-    ))
+    await Promise.all(keys.map(key => ac
+      .suggest(key)
+      .then(i => i.forEach(j => matched.add(j)))))
 
     return matched
   }
@@ -204,17 +218,17 @@ export function createSearch(
   }
 
   function getFeatureUsage(css: string) {
-    const props = uniq([...css.matchAll(/^\s+(\w[\w-]+)\:/mg)].map(i => i[1]))
-    const functions = uniq([...css.matchAll(/\b(\w+)\(/mg)].map(i => `${i[1]}()`))
-    const pseudo = uniq([...css.matchAll(/\:([\w-]+)/mg)].map(i => `:${i[1]}`))
+    const props = uniq([...css.matchAll(/^\s+(\w[\w-]+):/gm)].map(i => i[1]))
+    const functions = uniq([...css.matchAll(/\b(\w+)\(/g)].map(i => `${i[1]}()`))
+    const pseudo = uniq([...css.matchAll(/:([\w-]+)/g)].map(i => `:${i[1]}`))
     return [...props, ...functions, ...pseudo]
       .filter(i => docs.value.find(s => s.title === i))
   }
 
   function getUrls(css: string) {
-    return uniq([...css.matchAll(/\burl\(([^)]+)\)/mg)]
+    return uniq([...css.matchAll(/\burl\(([^)]+)\)/g)]
       .map(i => i[1]))
-      .map(i => i.match(/^(['"]).*\1$/) ? i.slice(1, -1) : i)
+      .map(i => /^(['"]).*\1$/.test(i) ? i.slice(1, -1) : i)
   }
 
   function getUtilsOfFeature(name: string) {

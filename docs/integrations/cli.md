@@ -41,6 +41,10 @@ You can also install the standalone package:
   ```
 :::
 
+::: info
+If you are not able to find the binary (e.g. with `pnpm` and only `unocss` is installed), you'll need to explicit install `@unocss/cli` standalone package.
+:::
+
 ## Usage
 
 You can also pass multiple glob patterns to `@unocss/cli`:
@@ -55,7 +59,7 @@ Example package configuration:
 Make sure to add escaped quotes to your npm script glob patterns.
 :::
 
-```json
+```json [package.json]
 {
   "scripts": {
     "dev": "unocss \"site/{snippets,templates}/**/*.php\" --watch",
@@ -89,7 +93,7 @@ The final `uno.css` will be generated to the current directory by default.
 
 Create a `uno.config.js` or `uno.config.ts` configuration file the root-level of your project to customize UnoCSS.
 
-```ts
+```ts [uno.config.ts]
 import { defineConfig } from 'unocss'
 
 export default defineConfig({
@@ -120,8 +124,9 @@ For a list of options, head over to the [UnoCSS configurations](/config/) docs.
 | `-v, --version` | Display the current version of UnoCSS |
 | `-c, --config-file <file>` | Config file |
 | `-o, --out-file <file>` | The output filename for the generated UnoCSS file. Defaults to `uno.css` in the current working directory |
+| `--stdout` | Write the generated UnoCSS file to STDOUT. Will cause the `--watch` and `--out-file` being ignored |
 | `-w, --watch` | Indicates if the files found by the glob pattern should be watched |
 | `--preflights` | Enable preflight styles |
+| `--write-transformed` | Update source files with transformed utilities |
 | `-m, --minify` | Minify generated CSS |
 | `-h, --help` | Display available CLI options |
-

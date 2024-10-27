@@ -1,12 +1,14 @@
-import { readFile } from 'node:fs/promises'
-import { describe, expect, test } from 'vitest'
-import { transformDirectives } from '@unocss/transformer-directives'
 import type { UnoGenerator } from '@unocss/core'
-import { createGenerator } from '@unocss/core'
+import type { IconsOptions } from '@unocss/preset-icons'
+import { readFile } from 'node:fs/promises'
+import { createGenerator, mergeDeep } from '@unocss/core'
+import presetIcons from '@unocss/preset-icons'
 import presetUno from '@unocss/preset-uno'
-import prettier from 'prettier/standalone'
-import parserCSS from 'prettier/parser-postcss'
 import MagicString from 'magic-string'
+import parserCSS from 'prettier/parser-postcss'
+import prettier from 'prettier/standalone'
+import { describe, expect, it } from 'vitest'
+import { transformDirectives } from '../packages/transformer-directives/src/transform'
 
 describe('transformer-directives', () => {
   const uno = createGenerator({
@@ -19,6 +21,12 @@ describe('transformer-directives', () => {
       btn: 'px-2 py-3 md:px-4 bg-blue-500 text-white rounded',
     },
     theme: {
+      colors: {
+        hsl: 'hsl(210, 50%, 50%)',
+        hsla: 'hsl(210, 50%, 50%, )',
+        rgb: 'rgb(255, 0, 0)',
+        rgba: 'rgba(255 0 0 / 0.5)',
+      },
       breakpoints: {
         xs: '320px',
         sm: '640px',
@@ -28,6 +36,19 @@ describe('transformer-directives', () => {
         xxl: '1536px',
       },
     },
+    variants: [
+      (matcher) => {
+        const prefix = 'sgroup:' // selector group
+
+        if (!matcher.startsWith(prefix))
+          return matcher
+
+        return {
+          matcher: matcher.slice(prefix.length),
+          selector: s => `${s}:hover, ${s}:focus`,
+        }
+      },
+    ],
   })
 
   async function transform(code: string, _uno: UnoGenerator = uno) {
@@ -39,24 +60,27 @@ describe('transformer-directives', () => {
     })
   }
 
-  test('basic', async () => {
+  it('basic', async () => {
     const result = await transform(
-      '.btn { @apply rounded text-lg font-mono; }',
+      `.btn {
+        @apply rounded text-lg;
+        @apply 'font-mono';
+      }`,
     )
     await expect(result)
       .toMatchInlineSnapshot(`
         ".btn {
           border-radius: 0.25rem;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-            \\"Liberation Mono\\", \\"Courier New\\", monospace;
           font-size: 1.125rem;
           line-height: 1.75rem;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
         }
         "
       `)
   })
 
-  test('breakpoints', async () => {
+  it('breakpoints', async () => {
     const result = await transform(
       '.grid { @apply grid grid-cols-2 xl:grid-cols-10 sm:grid-cols-7 md:grid-cols-3 lg:grid-cols-4 }',
     )
@@ -64,7 +88,7 @@ describe('transformer-directives', () => {
       .toMatchFileSnapshot('./assets/output/transformer-directives-breakpoints.css')
   })
 
-  test('variant group', async () => {
+  it('variant group', async () => {
     const result = await transform(
       '.btn { @apply grid-(cols-2 rows-4) hover:(border bg-white) }',
     )
@@ -72,7 +96,7 @@ describe('transformer-directives', () => {
       .toMatchFileSnapshot('./assets/output/transformer-directives-variant-group.css')
   })
 
-  test('pseudo-classes', async () => {
+  it('pseudo-classes', async () => {
     const result = await transform(
       '.btn { @apply p-3 hover:bg-white focus:border }',
     )
@@ -86,13 +110,13 @@ describe('transformer-directives', () => {
         }
         .btn:hover {
           --un-bg-opacity: 1;
-          background-color: rgba(255, 255, 255, var(--un-bg-opacity));
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
         }
         "
       `)
   })
 
-  test('multiple pseudo-classes', async () => {
+  it('multiple pseudo-classes', async () => {
     const result = await transform(
       '.btn { @apply sm:hover:bg-white }',
     )
@@ -103,14 +127,14 @@ describe('transformer-directives', () => {
         @media (min-width: 640px) {
           .btn:hover {
             --un-bg-opacity: 1;
-            background-color: rgba(255, 255, 255, var(--un-bg-opacity));
+            background-color: rgb(255 255 255 / var(--un-bg-opacity));
           }
         }
         "
       `)
   })
 
-  test('element selector', async () => {
+  it('element selector', async () => {
     const result = await transform(
       'input { @apply px-3 focus:border; }',
     )
@@ -127,7 +151,7 @@ describe('transformer-directives', () => {
       `)
   })
 
-  test('multiple selector', async () => {
+  it('multiple selector', async () => {
     const result = await transform(
       '.btn,.box { @apply px-3 focus:border; }',
     )
@@ -146,7 +170,7 @@ describe('transformer-directives', () => {
       `)
   })
 
-  test('two class selector', async () => {
+  it('two class selector', async () => {
     const result = await transform(
       '.btn.box { @apply px-3 focus:border; }',
     )
@@ -163,7 +187,7 @@ describe('transformer-directives', () => {
       `)
   })
 
-  test('multiple apply', async () => {
+  it('multiple apply', async () => {
     const result = await transform(
       `.btn {
         @apply p-3;
@@ -177,20 +201,52 @@ describe('transformer-directives', () => {
         ".btn {
           padding: 0.75rem;
           --un-bg-opacity: 1;
-          background-color: rgba(255, 255, 255, var(--un-bg-opacity));
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
         }
         .btn:hover {
           border-width: 1px;
         }
         .btn:hover {
           --un-bg-opacity: 1;
-          background-color: rgba(59, 130, 246, var(--un-bg-opacity));
+          background-color: rgb(59 130 246 / var(--un-bg-opacity));
         }
         "
       `)
   })
 
-  test('dark class', async () => {
+  // #3794
+  it('multiple apply ignore comments', async () => {
+    const result = await transform(
+      `.btn {
+        @apply p-3 m-4 /* overflow-hidden */ /*bg-white*/ // bg-black
+        text-center // w-2
+        ;
+        @apply bg-white;
+        @apply hover:bg-blue-500 /* m-4 */;
+        @apply hover:border;
+      }`,
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+          margin: 1rem;
+          padding: 0.75rem;
+          text-align: center;
+          --un-bg-opacity: 1;
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
+        }
+        .btn:hover {
+          --un-bg-opacity: 1;
+          background-color: rgb(59 130 246 / var(--un-bg-opacity));
+        }
+        .btn:hover {
+          border-width: 1px;
+        }
+        "
+      `)
+  })
+
+  it('dark class', async () => {
     const uno = createGenerator({
       presets: [
         presetUno({
@@ -211,17 +267,17 @@ describe('transformer-directives', () => {
       .toMatchInlineSnapshot(`
         ".btn {
           --un-bg-opacity: 1;
-          background-color: rgba(255, 255, 255, var(--un-bg-opacity));
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
         }
         .dark .btn {
           --un-bg-opacity: 1;
-          background-color: rgba(0, 0, 0, var(--un-bg-opacity));
+          background-color: rgb(0 0 0 / var(--un-bg-opacity));
         }
         "
       `)
   })
 
-  test('nested class', async () => {
+  it('nested class', async () => {
     const result = await transform(
       `nav {
         ul {
@@ -254,7 +310,7 @@ describe('transformer-directives', () => {
       `)
   })
 
-  test('css file', async () => {
+  it('css file', async () => {
     const css = await readFile('./test/assets/apply.css', 'utf8')
     const result = await transform(css)
 
@@ -262,16 +318,16 @@ describe('transformer-directives', () => {
       .toMatchFileSnapshot('./assets/output/transformer-directives-apply.css')
   })
 
-  test('custom breakpoints', async () => {
+  it('custom breakpoints', async () => {
     const result = await transform('.grid { @apply grid grid-cols-2 xs:grid-cols-1 xxl:grid-cols-15 xl:grid-cols-10 sm:grid-cols-7 md:grid-cols-3 lg:grid-cols-4 }')
     await expect(result)
       .toMatchFileSnapshot('./assets/output/transformer-directives-custom-breakpoints.css')
   })
 
-  test('var style class', async () => {
+  it('var style class', async () => {
     const result = await transform(
       `nav {
-        --at-apply: border;
+        --at-apply: border font-mono text-lg;
 
         ul {
           li {
@@ -284,11 +340,54 @@ describe('transformer-directives', () => {
         }
       }`,
     )
+
     await expect(result)
       .toMatchFileSnapshot('./assets/output/transformer-directives-var-style-class.css')
   })
 
-  test('@screen basic', async () => {
+  it('multiple apply in one class', async () => {
+    const result = await transform(
+      `nav {
+        --at-apply: border font-mono text-lg;
+        
+        .test-a {
+          @apply shadow-lg;@apply rounded-md bg-slate-300 shadow-amber-500;
+        }
+        .test-b {
+          @apply shadow-lg;font-size:20px;@apply rounded-md bg-slate-300 shadow-amber-500;
+        }
+        a {
+          --at-apply: px-2;
+          --uno: "hover:underline";
+        }
+      }`,
+    )
+
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-multiple-apply-in-one-class.css')
+  })
+
+  it('declaration for apply variable', async () => {
+    const result = await transform(
+      `nav {
+        --uno: b-#fff bg-black/5 fw-600 text-teal/7 'shadow-red:80';
+      }`,
+    )
+
+    expect(result).toMatchInlineSnapshot(`
+      "nav {
+        --un-border-opacity: 1;
+        border-color: rgb(255 255 255 / var(--un-border-opacity));
+        background-color: rgb(0 0 0 / 0.05);
+        color: rgb(45 212 191 / 0.07);
+        font-weight: 600;
+        --un-shadow-color: rgb(248 113 113 / 0.8);
+      }
+      "
+    `)
+  })
+
+  it('@screen basic', async () => {
     const result = await transform(`
 .grid {
   @apply grid grid-cols-2;
@@ -328,7 +427,7 @@ describe('transformer-directives', () => {
       .toMatchFileSnapshot('./assets/output/transformer-directives-at-screen.css')
   })
 
-  test('@screen lt variant', async () => {
+  it('@screen lt variant', async () => {
     const result = await transform(`
 .grid {
   @apply grid grid-cols-2;
@@ -353,7 +452,7 @@ describe('transformer-directives', () => {
       .toMatchFileSnapshot('./assets/output/transformer-directives-screen-lt.css')
   })
 
-  test('@screen at variant', async () => {
+  it('@screen at variant', async () => {
     const result = await transform(`
   .grid {
     @apply grid grid-cols-2;
@@ -378,8 +477,22 @@ describe('transformer-directives', () => {
       .toMatchFileSnapshot('./assets/output/transformer-directives-screen-at.css')
   })
 
+  it('@screen with compression', async () => {
+    const result = await transform(`@screen md{#__page{--uno:px-4}}`)
+    await expect(result)
+      .toMatchInlineSnapshot(`
+        "@media (min-width: 768px) {
+          #__page {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+        }
+        "
+      `)
+  })
+
   describe('theme()', () => {
-    test('basic', async () => {
+    it('basic', async () => {
       const result = await transform(
         `.btn {
           background-color: theme("colors.blue.500");
@@ -402,40 +515,36 @@ describe('transformer-directives', () => {
         `)
     })
 
-    test('non-exist', async () => {
+    it('non-exist', async () => {
       expect(async () => await transform(
         `.btn {
         color: theme("color.none.500");
         }`,
-      )).rejects
-        .toMatchInlineSnapshot('[Error: theme of "color.none.500" did not found]')
+      )).rejects.toMatchInlineSnapshot(`[Error: theme of "color.none.500" did not found]`)
 
       expect(async () => await transform(
-          `.btn {
+        `.btn {
           font-size: theme("size.lg");
           }`,
-      )).rejects
-        .toMatchInlineSnapshot('[Error: theme of "size.lg" did not found]')
+      )).rejects.toMatchInlineSnapshot(`[Error: theme of "size.lg" did not found]`)
     })
 
-    test('args', async () => {
+    it('args', async () => {
       expect(async () => await transform(
         `.btn {
           color: theme();
         }`,
-      )).rejects
-        .toMatchInlineSnapshot('[Error: theme() expect exact one argument, but got 0]')
+      )).rejects.toMatchInlineSnapshot(`[Error: theme() expect exact one argument]`)
     })
 
-    test('with @apply', async () => {
+    it('with @apply', async () => {
       const result = await transform(`
 div {
   @apply flex h-full w-full justify-center items-center;
 
   --my-color: theme('colors.red.500');
   color: var(--my-color);
-}`,
-      )
+}`)
       expect(result).toMatchInlineSnapshot(`
         "div {
           height: 100%;
@@ -450,9 +559,30 @@ div {
         "
       `)
     })
+
+    it('opacity', async () => {
+      const result = await transform(`
+        div {
+          color: theme('colors.red.500 / 50%');
+          color: theme('colors.rgb / 0.5');
+          color: theme('colors.rgba / 50%');
+          color: theme('colors.hsl / 0.6');
+          color: theme('colors.hsla / 60%');
+        }`)
+      expect(result).toMatchInlineSnapshot(`
+        "div {
+          color: rgb(239 68 68 / 50%);
+          color: rgb(255 0 0 / 0.5);
+          color: rgba(255, 0, 0, 50%);
+          color: hsl(210 50% 50% / 0.6);
+          color: hsl(210 50% 50% / 60%);
+        }
+        "
+      `)
+    })
   })
 
-  test('escape backslash', async () => {
+  it('escape backslash', async () => {
     const result = await transform(
       '.btn { @apply border-r-\$theme-color }',
     )
@@ -465,7 +595,7 @@ div {
       `)
   })
 
-  test('@apply with colon', async () => {
+  it('@apply with colon', async () => {
     const result = await transform(
       '.btn { @apply: rounded text-lg font-mono }',
     )
@@ -473,12 +603,832 @@ div {
       .toMatchInlineSnapshot(`
         ".btn {
           border-radius: 0.25rem;
+          font-size: 1.125rem;
+          line-height: 1.75rem;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-            \\"Liberation Mono\\", \\"Courier New\\", monospace;
+            "Liberation Mono", "Courier New", monospace;
+        }
+        "
+      `)
+  })
+
+  it('@apply animate- scoped', async () => {
+    const result = await transform(
+      '.btn { @apply: animate-pulse }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        "
+      `)
+  })
+
+  it('@apply selector group', async () => {
+    const result = await transform(
+      '.btn { @apply: sgroup:bg-orange }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        .btn:hover,
+        .btn:focus {
+          --un-bg-opacity: 1;
+          background-color: rgb(251 146 60 / var(--un-bg-opacity));
+        }
+        "
+      `)
+  })
+
+  it('--at-apply with colon in value', async () => {
+    const result = await transform(
+      `.v-popper--theme-dropdown .v-popper__inner,
+      .v-popper--theme-tooltip .v-popper__inner {
+        --at-apply: text-green dark:text-red;
+        box-shadow: 0 6px 30px #0000001a;
+      }`,
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".v-popper--theme-dropdown .v-popper__inner,
+        .v-popper--theme-tooltip .v-popper__inner {
+          --un-text-opacity: 1;
+          color: rgb(74 222 128 / var(--un-text-opacity));
+          box-shadow: 0 6px 30px #0000001a;
+        }
+        @media (prefers-color-scheme: dark) {
+          .v-popper--theme-dropdown .v-popper__inner,
+          .v-popper--theme-tooltip .v-popper__inner {
+            --un-text-opacity: 1;
+            color: rgb(248 113 113 / var(--un-text-opacity));
+          }
+        }
+        "
+      `)
+  })
+})
+
+describe('transformer-directives with important', () => {
+  const uno = createGenerator({
+    presets: [
+      presetUno({
+        dark: 'media',
+        important: '#app',
+      }),
+    ],
+    shortcuts: {
+      btn: 'px-2 py-3 md:px-4 bg-blue-500 text-white rounded',
+    },
+    theme: {
+      colors: {
+        hsl: 'hsl(210, 50%, 50%)',
+        hsla: 'hsl(210, 50%, 50%, )',
+        rgb: 'rgb(255, 0, 0)',
+        rgba: 'rgba(255 0 0 / 0.5)',
+        primary: {
+          500: '#222',
+          DEFAULT: '#ccc',
+        },
+      },
+      breakpoints: {
+        xs: '320px',
+        sm: '640px',
+        md: '768px',
+        lg: '1024px',
+        xl: '1280px',
+        xxl: '1536px',
+      },
+    },
+    variants: [
+      (matcher) => {
+        const prefix = 'sgroup:' // selector group
+
+        if (!matcher.startsWith(prefix))
+          return matcher
+
+        return {
+          matcher: matcher.slice(prefix.length),
+          selector: s => `${s}:hover, ${s}:focus`,
+        }
+      },
+    ],
+  })
+
+  async function transform(code: string, _uno: UnoGenerator = uno) {
+    const s = new MagicString(code)
+    await transformDirectives(s, _uno, {})
+    return prettier.format(s.toString(), {
+      parser: 'css',
+      plugins: [parserCSS],
+    })
+  }
+
+  // todo: remove empty class and merge same class
+  it('basic', async () => {
+    const result = await transform(
+      `.btn {
+        @apply rounded text-lg;
+        @apply 'font-mono';
+      }`,
+    )
+
+    await expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn) {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
+        }
+        #app :is(.btn) {
+          border-radius: 0.25rem;
           font-size: 1.125rem;
           line-height: 1.75rem;
         }
         "
       `)
+  })
+
+  it('breakpoints', async () => {
+    const result = await transform(
+      '.grid { @apply grid grid-cols-2 xl:grid-cols-10 sm:grid-cols-7 md:grid-cols-3 lg:grid-cols-4 }',
+    )
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-breakpoints-with-important.css')
+  })
+
+  it('variant group', async () => {
+    const result = await transform(
+      '.btn { @apply grid-(cols-2 rows-4) hover:(border bg-white) }',
+    )
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-variant-group-with-important.css')
+  })
+
+  it('pseudo-classes', async () => {
+    const result = await transform(
+      '.btn { @apply p-3 hover:bg-white focus:border }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn:focus) {
+          border-width: 1px;
+        }
+        #app :is(.btn:hover) {
+          --un-bg-opacity: 1;
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
+        }
+        #app :is(.btn) {
+          padding: 0.75rem;
+        }
+        "
+      `)
+  })
+
+  it('multiple pseudo-classes', async () => {
+    const result = await transform(
+      '.btn { @apply sm:hover:bg-white }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        @media (min-width: 640px) {
+          #app :is(.btn:hover) {
+            --un-bg-opacity: 1;
+            background-color: rgb(255 255 255 / var(--un-bg-opacity));
+          }
+        }
+        "
+      `)
+  })
+
+  it('element selector', async () => {
+    const result = await transform(
+      'input { @apply px-3 focus:border; }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        "input {
+        }
+        #app :is(input:focus) {
+          border-width: 1px;
+        }
+        #app :is(input) {
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+        }
+        "
+      `)
+  })
+
+  it('multiple selector', async () => {
+    const result = await transform(
+      '.btn,.box { @apply px-3 focus:border; }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn,
+        .box {
+        }
+        #app :is(.btn, .box:focus),
+        #app :is(.btn, .box:focus) {
+          border-width: 1px;
+        }
+        #app :is(.btn, .box),
+        #app :is(.btn, .box) {
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+        }
+        "
+      `)
+  })
+
+  it('two class selector', async () => {
+    const result = await transform(
+      '.btn.box { @apply px-3 focus:border; }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn.box {
+        }
+        #app :is(.btn.box:focus) {
+          border-width: 1px;
+        }
+        #app :is(.btn.box) {
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+        }
+        "
+      `)
+  })
+
+  it('multiple apply', async () => {
+    const result = await transform(
+      `.btn {
+        @apply p-3;
+        @apply bg-white;
+        @apply hover:bg-blue-500;
+        @apply hover:border;
+      }`,
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn) {
+          padding: 0.75rem;
+        }
+        #app :is(.btn:hover) {
+          border-width: 1px;
+        }
+        #app :is(.btn) {
+          --un-bg-opacity: 1;
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
+        }
+        #app :is(.btn:hover) {
+          --un-bg-opacity: 1;
+          background-color: rgb(59 130 246 / var(--un-bg-opacity));
+        }
+        "
+      `)
+  })
+
+  // #3794
+  it('multiple apply ignore comments', async () => {
+    const result = await transform(
+      `.btn {
+        @apply p-3 m-4 /* overflow-hidden */ /*bg-white*/ // bg-black
+        text-center // w-2
+        ;
+        @apply bg-white;
+        @apply hover:bg-blue-500 /* m-4 */;
+        @apply hover:border;
+      }`,
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn) {
+          --un-bg-opacity: 1;
+          background-color: rgb(255 255 255 / var(--un-bg-opacity));
+        }
+        #app :is(.btn:hover) {
+          --un-bg-opacity: 1;
+          background-color: rgb(59 130 246 / var(--un-bg-opacity));
+        }
+        #app :is(.btn:hover) {
+          border-width: 1px;
+        }
+        #app :is(.btn) {
+          margin: 1rem;
+          padding: 0.75rem;
+          text-align: center;
+        }
+        "
+      `)
+  })
+
+  // todo: fix the test
+  it('nested class', async () => {
+    const result = await transform(
+      `nav {
+        ul {
+          li {
+            @apply border;
+          }
+        }
+        a {
+          @apply px-2 hover:underline;
+        }
+      }`,
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        "nav {
+          ul {
+            li {
+            }
+            #app :is(li) {
+              border-width: 1px;
+            }
+          }
+          a {
+          }
+          #app :is(a) {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+          }
+          #app :is(a:hover) {
+            text-decoration-line: underline;
+          }
+        }
+        "
+      `)
+  })
+
+  it('css file', async () => {
+    const css = await readFile('./test/assets/apply.css', 'utf8')
+    const result = await transform(css)
+
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-apply-with-important.css')
+  })
+
+  it('custom breakpoints', async () => {
+    const result = await transform('.grid { @apply grid grid-cols-2 xs:grid-cols-1 xxl:grid-cols-15 xl:grid-cols-10 sm:grid-cols-7 md:grid-cols-3 lg:grid-cols-4 }')
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-custom-breakpoints-with-important.css')
+  })
+
+  it('var style class', async () => {
+    const result = await transform(
+      `nav {
+        --at-apply: border font-mono text-lg;
+
+        ul {
+          li {
+            --uno-apply: border;
+          }
+        }
+        a {
+          --at-apply: px-2;
+          --uno: "hover:underline";
+        }
+      }`,
+    )
+
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-var-style-class-with-important.css')
+  })
+
+  it('declaration for apply variable', async () => {
+    const result = await transform(
+      `nav {
+        --uno: b-#fff bg-black/5 fw-600 text-teal/7 'shadow-red:80';
+      }`,
+    )
+
+    expect(result).toMatchInlineSnapshot(`
+      "nav {
+      }
+      #app :is(nav) {
+        --un-border-opacity: 1;
+        border-color: rgb(255 255 255 / var(--un-border-opacity));
+        background-color: rgb(0 0 0 / 0.05);
+        color: rgb(45 212 191 / 0.07);
+        font-weight: 600;
+        --un-shadow-color: rgb(248 113 113 / 0.8);
+      }
+      "
+    `)
+  })
+
+  it('@screen basic', async () => {
+    const result = await transform(`
+.grid {
+  @apply grid grid-cols-2;
+}
+@screen xs {
+  .grid {
+    @apply grid-cols-1;
+  }
+}
+@screen sm {
+  .grid {
+    @apply grid-cols-3;
+  }
+}
+@screen md {
+  .grid {
+    @apply grid-cols-4;
+  }
+}
+@screen lg {
+  .grid {
+    @apply grid-cols-5;
+  }
+}
+@screen xl {
+  .grid {
+    @apply grid-cols-6;
+  }
+}
+@screen xxl {
+  .grid {
+    @apply grid-cols-7;
+  }
+}
+`)
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-at-screen-with-important.css')
+  })
+
+  it('@screen lt variant', async () => {
+    const result = await transform(`
+.grid {
+  @apply grid grid-cols-2;
+}
+@screen lt-xs {
+  .grid {
+    @apply grid-cols-1;
+  }
+}
+@screen lt-sm {
+  .grid {
+    @apply grid-cols-3;
+  }
+}
+@screen lt-md {
+  .grid {
+    @apply grid-cols-4;
+  }
+}
+`)
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-screen-lt-with-important.css')
+  })
+
+  it('@screen at variant', async () => {
+    const result = await transform(`
+  .grid {
+    @apply grid grid-cols-2;
+  }
+  @screen at-xs {
+    .grid {
+      @apply grid-cols-1;
+    }
+  }
+  @screen at-xl {
+    .grid {
+      @apply grid-cols-3;
+    }
+  }
+  @screen at-xxl {
+    .grid {
+      @apply grid-cols-4;
+    }
+  }
+`)
+    await expect(result)
+      .toMatchFileSnapshot('./assets/output/transformer-directives-screen-at-with-important.css')
+  })
+
+  describe('theme()', () => {
+    it('basic', async () => {
+      const result = await transform(
+        `.btn {
+          background-color: theme("colors.blue.500");
+          padding: theme("spacing.xs") theme("spacing.sm");
+        }
+        .btn-2 {
+          height: calc(100vh - theme('spacing.sm'));
+        }`,
+      )
+      expect(result)
+        .toMatchInlineSnapshot(`
+          ".btn {
+            background-color: #3b82f6;
+            padding: 0.75rem 0.875rem;
+          }
+          .btn-2 {
+            height: calc(100vh - 0.875rem);
+          }
+          "
+        `)
+    })
+
+    it('non-exist', async () => {
+      expect(async () => await transform(
+        `.btn {
+        color: theme("color.none.500");
+        }`,
+      )).rejects.toMatchInlineSnapshot(`[Error: theme of "color.none.500" did not found]`)
+
+      expect(async () => await transform(
+        `.btn {
+          font-size: theme("size.lg");
+          }`,
+      )).rejects.toMatchInlineSnapshot(`[Error: theme of "size.lg" did not found]`)
+    })
+
+    it('args', async () => {
+      expect(async () => await transform(
+        `.btn {
+          color: theme();
+        }`,
+      )).rejects.toMatchInlineSnapshot(`[Error: theme() expect exact one argument]`)
+    })
+
+    it('with @apply', async () => {
+      const result = await transform(`
+div {
+  @apply flex h-full w-full justify-center items-center;
+
+  --my-color: theme('colors.red.500');
+  color: var(--my-color);
+}`)
+      expect(result).toMatchInlineSnapshot(`
+        "div {
+          --my-color: #ef4444;
+          color: var(--my-color);
+        }
+        #app :is(div) {
+          height: 100%;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        "
+      `)
+    })
+
+    it('opacity', async () => {
+      const result = await transform(`
+        div {
+          color: theme('colors.red.500 / 50%');
+          color: theme('colors.rgb / 0.5');
+          color: theme('colors.rgba / 50%');
+          color: theme('colors.hsl / 0.6');
+          color: theme('colors.hsla / 60%');
+        }`)
+      expect(result).toMatchInlineSnapshot(`
+        "div {
+          color: rgb(239 68 68 / 50%);
+          color: rgb(255 0 0 / 0.5);
+          color: rgba(255, 0, 0, 50%);
+          color: hsl(210 50% 50% / 0.6);
+          color: hsl(210 50% 50% / 60%);
+        }
+        "
+      `)
+    })
+
+    it('color with DEFAULT', async () => {
+      const result = await transform(`
+        div {
+          color: theme('colors.primary');
+          color: theme('colors.primary.DEFAULT');
+          color: theme('colors.primary / 50%');
+          color: theme('colors.primary.500');
+        }`)
+
+      expect(result).toMatchInlineSnapshot(`
+        "div {
+          color: #ccc;
+          color: #ccc;
+          color: rgb(204 204 204 / 50%);
+          color: #222;
+        }
+        "
+      `)
+    })
+  })
+
+  it('escape backslash', async () => {
+    const result = await transform(
+      '.btn { @apply border-r-\$theme-color }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn) {
+          border-right-color: var(--theme-color);
+        }
+        "
+      `)
+  })
+
+  it('@apply with colon', async () => {
+    const result = await transform(
+      '.btn { @apply: rounded text-lg font-mono }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn) {
+          border-radius: 0.25rem;
+          font-size: 1.125rem;
+          line-height: 1.75rem;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
+        }
+        "
+      `)
+  })
+
+  it('@apply animate- scoped', async () => {
+    const result = await transform(
+      '.btn { @apply: animate-pulse }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn) {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        "
+      `)
+  })
+
+  it('@apply selector group', async () => {
+    const result = await transform(
+      '.btn { @apply: sgroup:bg-orange }',
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".btn {
+        }
+        #app :is(.btn:hover, .btn:focus) {
+          --un-bg-opacity: 1;
+          background-color: rgb(251 146 60 / var(--un-bg-opacity));
+        }
+        "
+      `)
+  })
+
+  it('--at-apply with colon in value', async () => {
+    const result = await transform(
+      `.v-popper--theme-dropdown .v-popper__inner,
+      .v-popper--theme-tooltip .v-popper__inner {
+        --at-apply: text-green dark:text-red;
+        box-shadow: 0 6px 30px #0000001a;
+      }`,
+    )
+    expect(result)
+      .toMatchInlineSnapshot(`
+        ".v-popper--theme-dropdown .v-popper__inner,
+        .v-popper--theme-tooltip .v-popper__inner {
+          box-shadow: 0 6px 30px #0000001a;
+        }
+        #app
+          :is(
+            .v-popper--theme-dropdown .v-popper__inner,
+            .v-popper--theme-tooltip .v-popper__inner
+          ),
+        #app
+          :is(
+            .v-popper--theme-dropdown .v-popper__inner,
+            .v-popper--theme-tooltip .v-popper__inner
+          ) {
+          --un-text-opacity: 1;
+          color: rgb(74 222 128 / var(--un-text-opacity));
+        }
+        @media (prefers-color-scheme: dark) {
+          #app
+            :is(
+              .v-popper--theme-dropdown .v-popper__inner,
+              .v-popper--theme-tooltip .v-popper__inner
+            ),
+          #app
+            :is(
+              .v-popper--theme-dropdown .v-popper__inner,
+              .v-popper--theme-tooltip .v-popper__inner
+            ) {
+            --un-text-opacity: 1;
+            color: rgb(248 113 113 / var(--un-text-opacity));
+          }
+        }
+        "
+      `)
+  })
+})
+
+describe('icon directive', () => {
+  function createUno(iconsOptions?: IconsOptions) {
+    const defaultOptions = {
+      collections: {
+        ph: {
+          check: `<svg xmlns="http://www.w3.org/2000/svg" fill="currentcolor" viewBox="0 0 24 24"><path d="ph:check"/></svg>`,
+        },
+      },
+    }
+
+    return createGenerator({
+      presets: [
+        presetUno(),
+        presetIcons(mergeDeep(defaultOptions, iconsOptions ?? {})),
+      ],
+    })
+  }
+
+  async function transform(code: string, _uno: UnoGenerator) {
+    const s = new MagicString(code)
+    await transformDirectives(s, _uno, {})
+    return prettier.format(s.toString(), {
+      parser: 'css',
+      plugins: [parserCSS],
+    })
+  }
+
+  it('icon()', async () => {
+    const uno = createUno()
+
+    const result = await transform(
+      `.icon {
+          background-image: icon('i-ph-check');
+          background-image: icon('i-ph:check', '#fff') no-repeat;
+          background-image: icon('i-ph:check', 'theme("colors.red.500")');
+          background-image: icon('i-carbon-sun');
+        }`,
+      uno,
+    )
+
+    expect(result).toMatchInlineSnapshot(`
+      ".icon {
+        background-image: url("data:image/svg+xml;utf8,%3Csvg width='1em' height='1em' xmlns='http://www.w3.org/2000/svg' fill='currentcolor' viewBox='0 0 24 24'%3E%3Cpath d='ph:check'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml;utf8,%3Csvg width='1em' height='1em' xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 24 24'%3E%3Cpath d='ph:check'/%3E%3C/svg%3E")
+          no-repeat;
+        background-image: url("data:image/svg+xml;utf8,%3Csvg width='1em' height='1em' xmlns='http://www.w3.org/2000/svg' fill='%23ef4444' viewBox='0 0 24 24'%3E%3Cpath d='ph:check'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml;utf8,%3Csvg viewBox='0 0 32 32' width='1em' height='1em' xmlns='http://www.w3.org/2000/svg' %3E%3Cpath fill='currentColor' d='M16 12.005a4 4 0 1 1-4 4a4.005 4.005 0 0 1 4-4m0-2a6 6 0 1 0 6 6a6 6 0 0 0-6-6M5.394 6.813L6.81 5.399l3.505 3.506L8.9 10.319zM2 15.005h5v2H2zm3.394 10.193L8.9 21.692l1.414 1.414l-3.505 3.506zM15 25.005h2v5h-2zm6.687-1.9l1.414-1.414l3.506 3.506l-1.414 1.414zm3.313-8.1h5v2h-5zm-3.313-6.101l3.506-3.506l1.414 1.414l-3.506 3.506zM15 2.005h2v5h-2z'/%3E%3C/svg%3E");
+      }
+      "
+    `)
+  })
+
+  it('icon() without extra properties', async () => {
+    const uno = createUno({
+      extraProperties: {
+        'display': 'inline-block',
+        'vertical-align': 'middle',
+      },
+    })
+
+    const result = await transform(
+      `.icon {
+          background-image: icon('i-ph-check');
+        }`,
+      uno,
+    )
+
+    expect(result).not.toContain(`display='inline-block'`)
+    expect(result).not.toContain(`vertical-align='middle'`)
   })
 })

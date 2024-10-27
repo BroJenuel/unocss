@@ -11,22 +11,21 @@ const emit = defineEmits<{
 <template>
   <div
     style="background-color: var(--cm-background)"
-    border="l y gray/20"
+    border="l y main"
     text="gray/80"
-    p1
     min-h-30px
     max-h-30px
     select-none
     flex
     all:my-auto
   >
-    <div flex @click="e => emit('titleClick', e)">
+    <div px1 flex @click="e => emit('titleClick', e)">
       <slot name="before" />
-      <div mr-2 op-60 shrink-0>
+      <div ml1 mr-2 op-60 shrink-0>
         {{ title }}
       </div>
     </div>
-    <div flex gap-2 flex-auto>
+    <div px1 flex gap-2 flex-auto h-full>
       <slot />
     </div>
   </div>

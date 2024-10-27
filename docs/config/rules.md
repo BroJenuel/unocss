@@ -5,7 +5,7 @@ description: Writing custom rules for UnoCSS is super easy.
 
 # Rules
 
-Rules define the way UnoCSS search and generate CSS for your codebase.
+Rules define utility classes and the resulting CSS. UnoCSS has many built-in rules but also allows for easily adding custom rules.
 
 ## Static rules
 
@@ -23,9 +23,17 @@ The following CSS will be generated whenever `m-1` is detected in users' codebas
 .m-1 { margin: 0.25rem; }
 ```
 
+> **Note**: The body syntax follows CSS property syntax, eg. `font-weight` instead of `fontWeight`. If there is a hyphen `-` in the property name it should be quoted.
+>
+> ```ts
+> rules: [
+>   ['font-bold', { 'font-weight': 700 }],
+> ]
+> ```
+
 ## Dynamic rules
 
-To make it smarter, change the matcher to a RegExp and the body to a function:
+To make it smarter, change the matcher to a `RegExp` and the body to a function:
 
 ```ts
 rules: [
@@ -34,7 +42,7 @@ rules: [
 ]
 ```
 
-The first argument of the body function is the match result, you can destructure it to get the matched groups.
+The first argument of the body function is the `RegExp` match result that can be destructured to get the matched groups.
 
 For example, with the following usage:
 
@@ -55,20 +63,130 @@ the corresponding CSS will be generated:
 .p-5 { padding: 1.25rem; }
 ```
 
-Congratulations! Now you got your own powerful atomic CSS utilities, enjoy!
+Congratulations! Now you've got your own powerful atomic CSS utilities. Enjoy!
 
-## Full controlled rules
+## CSS Rules Fallback
 
-::: warning
-This is an advanced feature, you don't need it in most of the cases.
-:::
-
-When you really need some advanced rules that can't be covered by the combination of [Dynamic Rules](#dynamic-rules) and [Variants](/config/variants), we also provide a way to give you full control to generate the CSS.
-
-By returning a `string` from the dynamic rule's body function, it will be directly passed to the generated CSS. That also means you would need to take care of things like CSS escaping, variants applying, CSS constructing, and so on.
+In cases you might want to leverage CSS rules fallback to use new CSS features while also able to fallback to support old browsers, you can optionally return a 2D-array as the CSS representation for rules with the same keys. For example:
 
 ```ts
-// uno.config.ts
+rules: [
+  [/^w-(\d+)dvh$/, ([_, d]) => {
+    return [
+      ['width', `${d}vh`],
+      ['width', `${d}dvh`],
+    ]
+  }],
+]
+```
+
+Which will make `w-100dvh` generates:
+
+```css
+.w-100dvh { width: 100vh; width: 100dvh; }
+```
+
+## Ordering
+
+UnoCSS respects the order of the rules you defined in the generated CSS. Latter ones come with higher priority.
+
+When using dynamic rules, it may match multiple tokens. By default, the output of those matched under a single dynamic rule will be sorted alphabetically within the group.
+
+## Rules merging
+
+By default, UnoCSS will merge CSS rules with the same body to minimize the CSS size.
+
+For example, `<div class="m-2 hover:m2">` will generate:
+
+```css
+.hover\:m2:hover, .m-2 { margin: 0.5rem; }
+```
+
+Instead of two separate rules:
+
+```css
+.hover\:m2:hover { margin: 0.5rem; }
+.m-2 { margin: 0.5rem; }
+```
+
+## Special symbols
+
+Since v0.61, UnoCSS supports special symbols to define additional meta information for your generated CSS. You can access symbols from the second argument of the dynamic rule matcher function.
+
+For example:
+
+```ts
+rules: [
+  [/^grid$/, ([, d], { symbols }) => {
+    return {
+      [symbols.parent]: '@supports (display: grid)',
+      display: 'grid',
+    }
+  }],
+]
+```
+
+Will generate:
+
+```css
+@supports (display: grid) {
+  .grid {
+    display: grid;
+  }
+}
+```
+
+### Available symbols
+
+- `symbols.parent`: The parent wrapper of the generated CSS rule (eg. `@supports`, `@media`, etc.)
+- `symbols.selector`: A function to modify the selector of the generated CSS rule (see the example below)
+- `symbols.layer`: A string/function/regex match that sets the UnoCSS layer of the generated CSS rule
+- `symbols.variants`: An array of variant handler that are applied to the current CSS object
+- `symbols.shortcutsNoMerge`: A boolean to disable the merging of the current rule in shortcuts
+
+## Multi-selector rules
+
+Since v0.61, UnoCSS supports multi-selector via [JavaScript Generator functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator).
+
+For example:
+
+```ts
+rules: [
+  [/^button-(.*)$/, function* ([, color], { symbols }) {
+    yield {
+      background: color
+    }
+    yield {
+      [symbols.selector]: selector => `${selector}:hover`,
+      // https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix
+      background: `color-mix(in srgb, ${color} 90%, black)`
+    }
+  }],
+]
+```
+
+Will generate multiple CSS rules:
+
+```css
+.button-red {
+  background: red;
+}
+.button-red:hover {
+  background: color-mix(in srgb, red 90%, black);
+}
+```
+
+## Fully controlled rules
+
+::: tip
+This is an advanced feature, in most situtations it won't be needed.
+:::
+
+When you really need some advanced rules that aren't covered by the combination of [Dynamic Rules](#dynamic-rules) and [Variants](/config/variants), UnoCSS also provides a way to give you full control to generate the CSS.
+
+It allows you to return a string from the dynamic rule's body function which will be **directly** passed to the generated CSS (this also means you need to take care of things like CSS escaping, variant applying, CSS constructing, and so on).
+
+```ts [uno.config.ts]
 import { defineConfig, toEscapedSelector as e } from 'unocss'
 
 export default defineConfig({
@@ -104,27 +222,4 @@ ${selector}::after {
     }],
   ],
 })
-```
-
-You might need to read some code to take the full power of it.
-
-## Ordering
-
-UnoCSS respects the order of the rules you defined in the generated CSS. Latter ones come with higher priority.
-
-## Rules merging
-
-By default, UnoCSS will merge CSS rules with the same body to minimize the CSS size.
-
-For example, `<div class="m-2 hover:m2">` will generate:
-
-```css
-.hover\:m2:hover, .m-2 { margin: 0.5rem; }
-```
-
-Instead of two separate rules:
-
-```css
-.hover\:m2:hover { margin: 0.5rem; }
-.m-2 { margin: 0.5rem; }
 ```

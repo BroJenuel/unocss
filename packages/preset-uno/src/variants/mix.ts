@@ -1,5 +1,6 @@
-import type { CSSColorValue, VariantObject } from '@unocss/core'
-import { colorToString, parseCssColor } from '@unocss/preset-mini/utils'
+import type { VariantObject } from '@unocss/core'
+import type { CSSColorValue } from '@unocss/rule-utils'
+import { colorToString, parseCssColor } from '@unocss/rule-utils'
 
 function mixComponent(v1: string | number, v2: string | number, w: string | number) {
   return `calc(${v2} + (${v1} - ${v2}) * ${w} / 100)`
@@ -9,15 +10,15 @@ function mixComponent(v1: string | number, v2: string | number, w: string | numb
  * Returns RGB color from a mixture of color1 and color2. Support RGB color values.
  * https://sass-lang.com/documentation/modules/color#mix
  *
- * @param {string | CSSColorValue} color1
- * @param {string | CSSColorValue} color2
- * @param {string | number} weight - How many of color2 will be used to mix into color1. Value of 0 will resulting in color2, value of 100 color1.
- * @return {CSSColorValue | undefined}
+ * @param color1
+ * @param color2
+ * @param weight - How many of color2 will be used to mix into color1. Value of 0 will resulting in color2, value of 100 color1.
+ * @return
  */
 function mixColor(color1: string | CSSColorValue, color2: string | CSSColorValue, weight: string | number): CSSColorValue | undefined {
   const colors = [color1, color2]
   const cssColors: CSSColorValue[] = []
-  for (let c = 0; c < 2; ++c) {
+  for (let c = 0; c < 2; c++) {
     const color = (typeof colors[c] === 'string' ? parseCssColor(colors[c] as string) : colors[c]) as CSSColorValue | undefined
     if (!color || !['rgb', 'rgba'].includes(color.type))
       return
@@ -25,7 +26,7 @@ function mixColor(color1: string | CSSColorValue, color2: string | CSSColorValue
   }
 
   const newComponents = []
-  for (let x = 0; x < 3; ++x)
+  for (let x = 0; x < 3; x++)
     newComponents.push(mixComponent(cssColors[0].components[x], cssColors[1].components[x], weight))
 
   return {
@@ -53,7 +54,7 @@ function shade(color: string | CSSColorValue, weight: string | number) {
  * Mix color with black or white, according to weight. @see {@link mixColor}
  */
 function shift(color: string | CSSColorValue, weight: string | number) {
-  const num = parseFloat(`${weight}`)
+  const num = Number.parseFloat(`${weight}`)
   if (!Number.isNaN(num))
     return num > 0 ? shade(color, weight) : tint(color, -num)
 }
@@ -65,7 +66,7 @@ const fns: Record<string, (color: string | CSSColorValue, weight: string | numbe
  * Shading mixes the color with black, Tinting mixes the color with white.
  * @see {@link mixColor}
  */
-export function variantColorMix(): VariantObject {
+export function variantColorMix<Theme extends object>(): VariantObject<Theme> {
   let re: RegExp
   return {
     name: 'mix',

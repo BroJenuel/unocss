@@ -1,6 +1,6 @@
 import { createGenerator, escapeSelector } from '@unocss/core'
 import presetWind from '@unocss/preset-wind'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { presetWindNonTargets, presetWindTargets } from './assets/preset-wind-targets'
 
 const uno = createGenerator({
@@ -33,7 +33,7 @@ const uno = createGenerator({
 })
 
 describe('preset-wind', () => {
-  test('targets', async () => {
+  it('targets', async () => {
     const targets = presetWindTargets
     const code = targets.join(' ')
     const { css } = await uno.generate(code)
@@ -49,13 +49,13 @@ describe('preset-wind', () => {
     expect(css).toEqual(css2)
   })
 
-  test('non-targets', async () => {
+  it('non-targets', async () => {
     const { matched } = await uno.generate(new Set(presetWindNonTargets), { preflights: false })
 
     expect([...matched]).toEqual([])
   })
 
-  test('containers', async () => {
+  it('containers', async () => {
     const targets = [
       'container',
       'md:container',
@@ -70,7 +70,7 @@ describe('preset-wind', () => {
     await expect(css).toMatchFileSnapshot('./assets/output/preset-wind-containers.css')
   })
 
-  test('centered containers', async () => {
+  it('centered containers', async () => {
     const uno = createGenerator({
       presets: [
         presetWind(),
@@ -93,7 +93,7 @@ describe('preset-wind', () => {
     await expect(css).toMatchFileSnapshot('./assets/output/preset-wind-containers-centered.css')
   })
 
-  test('containers with max width', async () => {
+  it('containers with max width', async () => {
     const uno = createGenerator({
       presets: [
         presetWind(),
@@ -123,7 +123,7 @@ describe('preset-wind', () => {
     await expect(css).toMatchFileSnapshot('./assets/output/preset-wind-containers-max-width.css')
   })
 
-  test('custom var prefix', async () => {
+  it('custom var prefix', async () => {
     const uno = createGenerator({
       presets: [
         presetWind({
@@ -140,9 +140,51 @@ describe('preset-wind', () => {
 
     await expect(css).toMatchFileSnapshot('./assets/output/preset-wind-custom-var-prefix.css')
   })
+
+  describe('important', () => {
+    it(`should add " !important" at the end when "true" unless it's already marked important`, async () => {
+      const uno = createGenerator({
+        presets: [
+          presetWind({
+            important: true,
+          }),
+        ],
+      })
+
+      const { css } = await uno.generate([
+        'text-opacity-50',
+        'text-red',
+        'important:scale-100',
+        'dark:bg-blue',
+      ].join(' '), { preflights: false })
+
+      await expect(css).toMatchFileSnapshot('./assets/output/preset-wind-important-true.css')
+    })
+
+    it(`should prefix selector with provided important string and wrap the original selector in ":is()"`, async () => {
+      const uno = createGenerator({
+        presets: [
+          presetWind({
+            important: '#app',
+          }),
+        ],
+      })
+
+      const { css } = await uno.generate([
+        'text-opacity-50',
+        'text-red',
+        'important:scale-100',
+        'dark:bg-blue',
+        'after:m-4',
+        'selection:bg-yellow',
+      ].join(' '), { preflights: false })
+
+      await expect(css).toMatchFileSnapshot('./assets/output/preset-wind-important-string.css')
+    })
+  })
 })
 
-test('empty prefix', async () => {
+it('empty prefix', async () => {
   const uno = createGenerator({
     presets: [
       presetWind({

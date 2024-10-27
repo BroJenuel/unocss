@@ -1,6 +1,6 @@
-import type { VariantContext, VariantObject } from '@unocss/core'
+import type { Variant, VariantContext, VariantObject } from '@unocss/core'
 import type { Theme } from '../theme'
-import { handler as h, variantGetParameter } from '../utils'
+import { h, variantGetParameter } from '../utils'
 
 export const variantAria: VariantObject = {
   name: 'aria',
@@ -18,3 +18,28 @@ export const variantAria: VariantObject = {
     }
   },
 }
+
+function taggedAria(tagName: string): Variant {
+  return {
+    name: `${tagName}-aria`,
+    match(matcher, ctx: VariantContext<Theme>) {
+      const variant = variantGetParameter(`${tagName}-aria-`, matcher, ctx.generator.config.separators)
+      if (variant) {
+        const [match, rest] = variant
+        const ariaAttribute = h.bracket(match) ?? ctx.theme.aria?.[match] ?? ''
+        if (ariaAttribute) {
+          return {
+            matcher: `${tagName}-[[aria-${ariaAttribute}]]:${rest}`,
+          }
+        }
+      }
+    },
+  }
+}
+
+export const variantTaggedAriaAttributes: Variant[] = [
+  taggedAria('group'),
+  taggedAria('peer'),
+  taggedAria('parent'),
+  taggedAria('previous'),
+]

@@ -1,6 +1,6 @@
 import type { CSSObject, Rule, Shortcut, VariantHandlerContext } from '@unocss/core'
-import { isString } from '@unocss/core'
 import type { Theme } from '@unocss/preset-mini'
+import { isString } from '@unocss/core'
 import { resolveBreakpoints } from '@unocss/preset-mini/utils'
 
 const queryMatcher = /@media \(min-width: (.+)\)/
@@ -27,8 +27,8 @@ export const container: Rule<Theme>[] = [
         if (isString(query)) {
           const match = query.match(queryMatcher)?.[1]
           if (match) {
-            const bp = resolveBreakpoints(context) ?? {}
-            const matchBp = Object.keys(bp).find(key => bp[key] === match)
+            const bp = resolveBreakpoints(context) ?? []
+            const matchBp = bp.find(i => i.size === match)?.point
 
             if (!themeMaxWidth)
               maxWidth = match
@@ -67,7 +67,7 @@ export const container: Rule<Theme>[] = [
 
 export const containerShortcuts: Shortcut<Theme>[] = [
   [/^(?:(\w+)[:-])?container$/, ([, bp], context) => {
-    let points = Object.keys(resolveBreakpoints(context) ?? {})
+    let points = (resolveBreakpoints(context) ?? []).map(i => i.point)
     if (bp) {
       if (!points.includes(bp))
         return

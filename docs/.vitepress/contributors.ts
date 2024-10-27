@@ -113,6 +113,29 @@ const plainTeamMembers: CoreTeam[] = [
     org: 'Polylingual Development',
     orgLink: 'https://polylingual.dev/',
   },
+  {
+    avatar: 'https://github.com/Dunqing.png',
+    name: 'Dunqing',
+    github: 'Dunqing',
+    twitter: 'dunqingg',
+    title: 'Passionate about open source',
+  },
+  {
+    avatar: 'https://github.com/Simon-He95.png',
+    name: 'Simon He',
+    github: 'Simon-He95',
+    twitter: 'simon_he1995',
+    title: 'Passionate about open source & FE Developer',
+    desc: '@webview-use author, vscode plugin master, open source magician, antfu’s number one fan',
+  },
+  {
+    avatar: 'https://github.com/henrikvilhelmberglund.png',
+    name: 'Henrik Berglund',
+    github: 'henrikvilhelmberglund',
+    twitter: 'henrikvberglund',
+    title: 'Frontend Developer',
+    desc: 'Loves Svelte, Vite and open source, author of the UnoCSS tutorial',
+  },
 ]
 
 const teamMembers = plainTeamMembers.map(tm => createLinks(tm))

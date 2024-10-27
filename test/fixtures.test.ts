@@ -1,16 +1,17 @@
 import { join, resolve } from 'node:path'
+import process from 'node:process'
 import { execa } from 'execa'
+import fs from 'fs-extra'
+import { glob } from 'tinyglobby'
 import { build } from 'vite'
 import { describe, expect, it } from 'vitest'
-import fs from 'fs-extra'
-import fg from 'fast-glob'
 
 const isMacOS = process.platform === 'darwin'
 const isWindows = process.platform === 'win32'
 const isNode16 = process.versions.node.startsWith('16')
 
-async function getGlobContent(cwd: string, glob: string) {
-  return await fg(glob, { cwd, absolute: true })
+async function getGlobContent(cwd: string, pattern: string) {
+  return await glob([pattern], { cwd, absolute: true, expandDirectories: false })
     .then(r => Promise.all(r.map(f => fs.readFile(f, 'utf8'))))
     .then(r => r.join('\n'))
 }
@@ -38,14 +39,20 @@ describe.concurrent('fixtures', () => {
     expect(css).contains('.uno-tacwqa')
     // transformer-directives
     expect(css).not.contains('@apply')
-    expect(css).not.contains('--at-apply')
     expect(css).contains('gap:.25rem')
-    expect(css).contains('gap:.5rem')
 
     // transformer-variant-group
     expect(js).contains('text-sm')
     // transformer-compile-class
     expect(js).contains('uno-tacwqa')
+
+    // @unocss-skip magic comment
+    // test extract
+    expect(css).not.contains('.text-yellow')
+    // test transform
+    expect(css).contains('--at-apply')
+    expect(css).not.contains('gap:.5rem')
+    expect(css).not.contains('.text-teal')
   })
 
   it.skipIf(isWindows)('vite legacy', async () => {
@@ -56,12 +63,27 @@ describe.concurrent('fixtures', () => {
       logLevel: 'warn',
     })
 
-    const svgs = await fg('dist/assets/uno-*.svg', { cwd: root, absolute: true })
+    const svgs = await glob(['dist/assets/uno-*.svg'], {
+      cwd: root,
+      absolute: true,
+      expandDirectories: false,
+    })
     expect(svgs).toHaveLength(1)
 
-    const css = await getGlobContent(root, 'dist/**/*.css')
+    const css = await getGlobContent(root, 'dist/**/index*.css')
     expect(css).contains('.text-red')
   }, 15000)
+
+  it.skipIf(isWindows)('vite legacy renderModernChunks false', async () => {
+    const root = resolve(__dirname, 'fixtures/vite-legacy-chunks')
+    await fs.emptyDir(join(root, 'dist'))
+    await build({
+      root,
+      logLevel: 'warn',
+    })
+    const css = await getGlobContent(root, 'dist/**/index*.js')
+    expect(css).contains('.mb-\\\\[50px\\\\]')
+  })
 
   it('vite lib', async () => {
     const root = resolve(__dirname, 'fixtures/vite-lib')
@@ -74,7 +96,11 @@ describe.concurrent('fixtures', () => {
       },
     })
 
-    const files = await fg('dist/**/*.{umd,iife}.js', { cwd: root, absolute: true })
+    const files = await glob(['dist/**/*.{umd,iife}.?(c)js'], {
+      cwd: root,
+      absolute: true,
+      expandDirectories: false,
+    })
 
     expect(files).toHaveLength(2)
 
@@ -97,9 +123,9 @@ describe.concurrent('fixtures', () => {
       // transformer-compile-class
       expect(code).contains('uno-tacwqa')
     }
-  })
+  }, 15000)
 
-  it('vite lib rollupOptions', async () => {
+  it.skipIf(isWindows)('vite lib rollupOptions', async () => {
     const root = resolve(__dirname, 'fixtures/vite-lib-rollupoptions')
     await fs.emptyDir(join(root, 'dist'))
     await build({
@@ -107,7 +133,11 @@ describe.concurrent('fixtures', () => {
       logLevel: 'warn',
     })
 
-    const files = await fg(['dist/**/index.js'], { cwd: root, absolute: true })
+    const files = await glob(['dist/**/index.js'], {
+      cwd: root,
+      absolute: true,
+      expandDirectories: false,
+    })
     expect(files).toHaveLength(2)
 
     for (const path of files) {

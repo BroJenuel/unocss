@@ -1,4 +1,5 @@
 {
+  "version": "0.63.6",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider vue-cli-service serve",
@@ -6,14 +7,18 @@
     "build:macos": "vue-cli-service build"
   },
   "dependencies": {
-    "vue": "^2.7.14"
+    "vue": "^2.7.16"
   },
   "devDependencies": {
     "@unocss/webpack": "link:../../packages/webpack",
-    "@vue/cli-plugin-babel": "~4.5.15",
-    "@vue/cli-service": "~4.5.15",
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-service": "~5.0.8",
     "cross-env": "^7.0.3",
     "unocss": "link:../../packages/unocss",
-    "vue-template-compiler": "^2.7.14"
+    "vue-template-compiler": "^2.7.16"
+  },
+  "stackblitz": {
+    "installDependencies": false,
+    "startCommand": "node .stackblitz.mjs && npm install && npm run dev"
   }
 }

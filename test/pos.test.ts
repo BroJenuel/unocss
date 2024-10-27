@@ -1,15 +1,16 @@
-import { describe, expect, test } from 'vitest'
-import presetAttributify from '@unocss/preset-attributify'
-import presetUno from '@unocss/preset-uno'
 import type { UnoGenerator } from '@unocss/core'
 import { createGenerator } from '@unocss/core'
-import { getMatchedPositionsFromCode as match } from '@unocss/shared-common'
-import transformerVariantGroup from '@unocss/transformer-variant-group'
-import cssDirectives from '@unocss/transformer-directives'
 import extractorPug from '@unocss/extractor-pug'
+import presetAttributify from '@unocss/preset-attributify'
+import presetUno from '@unocss/preset-uno'
+import { defaultIdeMatchExclude, defaultIdeMatchInclude } from '@unocss/shared-integration'
+import cssDirectives from '@unocss/transformer-directives'
+import transformerVariantGroup from '@unocss/transformer-variant-group'
+import { describe, expect, it } from 'vitest'
+import { getMatchedPositionsFromCode as match } from '../packages/shared-common/src'
 
 describe('matched-positions', async () => {
-  test('attributify', async () => {
+  it('attributify', async () => {
     const uno = createGenerator({
       presets: [
         presetAttributify({ strict: true }),
@@ -23,27 +24,27 @@ describe('matched-positions', async () => {
           [
             13,
             14,
-            "[border=\\"b\\"]",
+            "[border="b"]",
           ],
           [
             15,
             20,
-            "[border=\\"gray4\\"]",
+            "[border="gray4"]",
           ],
           [
             21,
             22,
-            "[border=\\"2\\"]",
+            "[border="2"]",
           ],
           [
             23,
             37,
-            "[border=\\"[&_span]:white\\"]",
+            "[border="[&_span]:white"]",
           ],
           [
             46,
             65,
-            "[hover=\\"[&>span]:text-white\\"]",
+            "[hover="[&>span]:text-white"]",
           ],
           [
             67,
@@ -54,7 +55,7 @@ describe('matched-positions', async () => {
       `)
   })
 
-  test('attributify position', async () => {
+  it('attributify position', async () => {
     const uno = createGenerator({
       presets: [
         presetAttributify({ strict: true }),
@@ -73,18 +74,18 @@ describe('matched-positions', async () => {
           [
             13,
             15,
-            "[border=\\"bb\\"]",
+            "[border="bb"]",
           ],
           [
             16,
             17,
-            "[border=\\"b\\"]",
+            "[border="b"]",
           ],
         ]
       `)
   })
 
-  test('css-directive', async () => {
+  it('css-directive', async () => {
     const uno = createGenerator({
       presets: [
         presetUno(),
@@ -114,7 +115,7 @@ describe('matched-positions', async () => {
       `)
   })
 
-  test('class-based', async () => {
+  it('class-based', async () => {
     const uno = createGenerator({
       presets: [
         presetUno(),
@@ -156,7 +157,7 @@ describe('matched-positions', async () => {
       `)
   })
 
-  test('arbitrary property', async () => {
+  it('arbitrary property', async () => {
     const uno = createGenerator({
       presets: [
         presetUno(),
@@ -185,7 +186,7 @@ describe('matched-positions', async () => {
       `)
   })
 
-  test('variant-group', async () => {
+  it('variant-group', async () => {
     const uno = createGenerator({
       presets: [
         presetUno(),
@@ -230,7 +231,7 @@ describe('matched-positions', async () => {
       `)
   })
 
-  test('colon highlighting #2460', async () => {
+  it('colon highlighting #2460', async () => {
     const uno = createGenerator({
       presets: [
         presetUno(),
@@ -248,12 +249,190 @@ describe('matched-positions', async () => {
         ]
       `)
   })
+
+  it('with include and exclude', async () => {
+    const uno = createGenerator({
+      presets: [
+        presetUno(),
+      ],
+    })
+
+    const code = `
+<script setup>
+let transition = 'ease-in-out duration-300'
+</script>
+
+<template>
+  <div class="h-1 text-red" />
+</template>
+
+<style>
+.css { 
+  transform: translateX(0);
+  @apply: text-blue;
+  --uno:
+    text-purple;
+}
+</style>
+    `
+
+    expect(await match(uno, code))
+      .toMatchInlineSnapshot(`
+        [
+          [
+            20,
+            30,
+            "transition",
+          ],
+          [
+            34,
+            45,
+            "ease-in-out",
+          ],
+          [
+            46,
+            58,
+            "duration-300",
+          ],
+          [
+            96,
+            99,
+            "h-1",
+          ],
+          [
+            100,
+            108,
+            "text-red",
+          ],
+          [
+            144,
+            153,
+            "transform",
+          ],
+          [
+            180,
+            189,
+            "text-blue",
+          ],
+          [
+            204,
+            215,
+            "text-purple",
+          ],
+        ]
+      `)
+
+    expect(await match(uno, code, undefined, { includeRegex: defaultIdeMatchInclude, excludeRegex: defaultIdeMatchExclude }))
+      .toMatchInlineSnapshot(`
+        [
+          [
+            34,
+            45,
+            "ease-in-out",
+          ],
+          [
+            46,
+            58,
+            "duration-300",
+          ],
+          [
+            96,
+            99,
+            "h-1",
+          ],
+          [
+            100,
+            108,
+            "text-red",
+          ],
+          [
+            180,
+            189,
+            "text-blue",
+          ],
+          [
+            204,
+            215,
+            "text-purple",
+          ],
+        ]
+      `)
+  })
+
+  it('with include and exclude in attributify', async () => {
+    const uno = createGenerator({
+      presets: [
+        presetUno(),
+        presetAttributify(),
+      ],
+    })
+
+    // #3684, origin HTML tags not include `mt-1`
+    expect(await match(uno, '<div class="[&_>*]:w-full" mt-1></div>', '', {
+      includeRegex: defaultIdeMatchInclude,
+      excludeRegex: defaultIdeMatchExclude,
+    }))
+      .toMatchInlineSnapshot(`
+          [
+            [
+              12,
+              25,
+              "[&_>*]:w-full",
+            ],
+            [
+              27,
+              31,
+              "mt-1",
+            ],
+          ]
+        `)
+
+    // origin HTML tags not include `mr-1 px2`
+    expect(await match(uno, `<Tabs
+    @edit="(e) => handleEdit()"
+    mr-1 px2
+    type="editable-card"
+    size="small"
+    :animated="false"
+    :hideAdd="true"
+    :tabBarGutter="3"
+    :activeKey="activeKeyRef"
+    @change="handleChange"
+  >`, '', {
+      includeRegex: defaultIdeMatchInclude,
+      excludeRegex: defaultIdeMatchExclude,
+    }))
+      .toMatchInlineSnapshot(`
+        [
+          [
+            42,
+            46,
+            "mr-1",
+          ],
+          [
+            47,
+            50,
+            "px2",
+          ],
+        ]
+      `)
+
+    // #3733, match php <? stuck
+    expect(await match(uno, `<?php
+    Route::get('/some-route', [SomeController::class, 'someMethod']);
+    Route::get('/some-route', [SomeController::class, 'someMethod']);
+    Route::get('/some-route', [SomeController::class, 'someMethod']);
+    `, '', {
+      includeRegex: defaultIdeMatchInclude,
+      excludeRegex: defaultIdeMatchExclude,
+    }))
+      .toMatchInlineSnapshot(`[]`)
+  })
 })
 
 describe('matched-positions-pug', async () => {
   const matchPug = (uno: UnoGenerator, code: string) => {
-    return match(uno,
-`<template lang='pug'>
+    return match(uno, `<template lang='pug'>
   ${code}
 </template>`, 'App.vue')
   }
@@ -271,7 +450,7 @@ describe('matched-positions-pug', async () => {
     ],
   })
 
-  test('plain class: normal case', async () => {
+  it('plain class: normal case', async () => {
     const pugCode = `div.p1.ma
       div.p2#id1
       div.p4.p5= p6
@@ -281,7 +460,7 @@ describe('matched-positions-pug', async () => {
     expect(await matchPug(uno, pugCode)).toMatchSnapshot()
   }, 20000)
 
-  test('plain class: prefix', async () => {
+  it('plain class: prefix', async () => {
     const pugCode = `div(class='hover:scale-100')
     div(class="hover:scale-90")
     div(class="hover:scale-80 p1")
@@ -291,7 +470,7 @@ describe('matched-positions-pug', async () => {
     expect(await matchPug(uno, pugCode)).toMatchSnapshot()
   }, 20000)
 
-  test('attributify', async () => {
+  it('attributify', async () => {
     const pugCode = `div.p4(border="b gray4")
       div(text='red')
       `
@@ -305,23 +484,23 @@ describe('matched-positions-pug', async () => {
         [
           39,
           40,
-          "[border=\\"b\\"]",
+          "[border="b"]",
         ],
         [
           41,
           46,
-          "[border=\\"gray4\\"]",
+          "[border="gray4"]",
         ],
         [
           65,
           68,
-          "[text=\\"red\\"]",
+          "[text="red"]",
         ],
       ]
     `)
   })
 
-  test('variant group', async () => {
+  it('variant group', async () => {
     const pugCode = 'div.p4(class="hover:(h-4 w-4)")'
     expect(await matchPug(uno, pugCode)).toMatchInlineSnapshot(`
       [
@@ -344,7 +523,7 @@ describe('matched-positions-pug', async () => {
     `)
   })
 
-  test('attributify `><`', async () => {
+  it('attributify `><`', async () => {
     const uno = createGenerator({
       presets: [
         presetAttributify(),
@@ -372,7 +551,7 @@ describe('matched-positions-pug', async () => {
       `)
   })
 
-  test('@unocss/transformer-directives', async () => {
+  it('@unocss/transformer-directives', async () => {
     // \n could not be include
     // div.p2(class="btn-center{@apply p1 m1;\n}") -> pug parse error
     const pugCode = 'div.p2(class="btn-center{@apply p1 m1;}")'

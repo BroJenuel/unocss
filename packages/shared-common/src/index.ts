@@ -1,33 +1,9 @@
-import type { ExtractorContext, UnoGenerator } from '@unocss/core'
-import { escapeRegExp, isAttributifySelector, makeRegexClassGroup, splitWithVariantGroupRE } from '@unocss/core'
+import type { ExtractorContext, HighlightAnnotation, UnoGenerator } from '@unocss/core'
+import { escapeRegExp, isAttributifySelector, splitWithVariantGroupRE } from '@unocss/core'
 import MagicString from 'magic-string'
 import { arbitraryPropertyRE, quotedArbitraryValuesRE } from '../../extractor-arbitrary-variants/src'
 
-// https://github.com/dsblv/string-replace-async/blob/main/index.js
-export function replaceAsync(string: string, searchValue: RegExp, replacer: (...args: string[]) => Promise<string>) {
-  try {
-    if (typeof replacer === 'function') {
-      const values: Promise<string>[] = []
-      String.prototype.replace.call(string, searchValue, (...args) => {
-        values.push(replacer(...args))
-        return ''
-      })
-      return Promise.all(values).then((resolvedValues) => {
-        return String.prototype.replace.call(string, searchValue, () => {
-          return resolvedValues.shift() || ''
-        })
-      })
-    }
-    else {
-      return Promise.resolve(
-        String.prototype.replace.call(string, searchValue, replacer),
-      )
-    }
-  }
-  catch (error) {
-    return Promise.reject(error)
-  }
-}
+export * from './replace-async'
 
 export async function isPug(uno: UnoGenerator, code: string, id = '') {
   const pugExtractor = uno.config.extractors?.find(e => e.name === 'pug')
@@ -85,10 +61,47 @@ export function getPlainClassMatchedPositionsForPug(codeSplit: string, matchedPl
   return result
 }
 
-export function getMatchedPositions(code: string, matched: string[], hasVariantGroup = false, isPug = false, uno: UnoGenerator | undefined = undefined) {
-  const result: [number, number, string][] = []
+export interface GetMatchedPositionsOptions {
+  isPug?: boolean
+  /**
+   * Regex to only limit the matched positions for certain code
+   */
+  includeRegex?: RegExp[]
+  /**
+   * Regex to exclude the matched positions for certain code, excludeRegex has higher priority than includeRegex
+   */
+  excludeRegex?: RegExp[]
+}
+
+export function getMatchedPositions(
+  code: string,
+  matched: string[],
+  extraAnnotations: HighlightAnnotation[] = [],
+  options: GetMatchedPositionsOptions = {},
+) {
+  const result: (readonly [start: number, end: number, text: string])[] = []
   const attributify: RegExpMatchArray[] = []
   const plain = new Set<string>()
+
+  const includeRanges: [number, number][] = []
+  const excludeRanges: [number, number][] = []
+
+  if (options.includeRegex) {
+    for (const regex of options.includeRegex) {
+      for (const match of code.matchAll(regex))
+        includeRanges.push([match.index!, match.index! + match[0].length])
+    }
+  }
+  else {
+    includeRanges.push([0, code.length])
+  }
+
+  if (options.excludeRegex) {
+    for (const regex of options.excludeRegex) {
+      for (const match of code.matchAll(regex))
+        excludeRanges.push([match.index!, match.index! + match[0].length])
+    }
+  }
 
   Array.from(matched)
     .forEach((v) => {
@@ -101,12 +114,14 @@ export function getMatchedPositions(code: string, matched: string[], hasVariantG
         highlightLessGreaterThanSign(match[1])
         plain.add(match[1])
       }
-      else { attributify.push(match) }
+      else {
+        attributify.push(match)
+      }
     })
 
   // highlight classes that includes `><`
   function highlightLessGreaterThanSign(str: string) {
-    if (str.match(/[><]/)) {
+    if (/[><]/.test(str)) {
       for (const match of code.matchAll(new RegExp(escapeRegExp(str), 'g'))) {
         const start = match.index!
         const end = start + match[0].length
@@ -119,7 +134,7 @@ export function getMatchedPositions(code: string, matched: string[], hasVariantG
   let start = 0
   code.split(splitWithVariantGroupRE).forEach((i) => {
     const end = start + i.length
-    if (isPug) {
+    if (options.isPug) {
       result.push(...getPlainClassMatchedPositionsForPug(i, plain, start))
     }
     else {
@@ -149,29 +164,6 @@ export function getMatchedPositions(code: string, matched: string[], hasVariantG
     }
   }
 
-  // highlight for variant group
-  if (hasVariantGroup) {
-    Array.from(code.matchAll(makeRegexClassGroup(uno?.config.separators)))
-      .forEach((match) => {
-        const [, pre, sep, body] = match
-        const index = match.index!
-        let start = index + pre.length + sep.length + 1
-        body.split(/([\s"'`;*]|:\(|\)"|\)\s)/g).forEach((i) => {
-          const end = start + i.length
-          const full = pre + sep + i
-          if (plain.has(full)) {
-            // find existing plain class match and replace it
-            const index = result.findIndex(([s, e]) => s === start && e === end)
-            if (index < 0)
-              result.push([start, end, full])
-            else
-              result[index][2] = full
-          }
-          start = end
-        })
-      })
-  }
-
   // attributify values
   attributify.forEach(([, name, value]) => {
     const regex = new RegExp(`(${escapeRegExp(name)}=)(['"])[^\\2]*?${escapeRegExp(value)}[^\\2]*?\\2`, 'g')
@@ -180,7 +172,7 @@ export function getMatchedPositions(code: string, matched: string[], hasVariantG
         const escaped = match[1]
         const body = match[0].slice(escaped.length)
         let bodyIndex = body.match(`[\\b\\s'"]${escapeRegExp(value)}[\\b\\s'"]`)?.index ?? -1
-        if (body[bodyIndex]?.match(/[\s'"]/))
+        if (/[\s'"]/.test(body[bodyIndex] ?? ''))
           bodyIndex++
         if (bodyIndex < 0)
           return
@@ -190,7 +182,18 @@ export function getMatchedPositions(code: string, matched: string[], hasVariantG
       })
   })
 
-  return result.sort((a, b) => a[0] - b[0])
+  result
+    .push(...extraAnnotations.map(i => [i.offset, i.offset + i.length, i.className] as const))
+
+  return result
+    .filter(([start, end]) => {
+      if (excludeRanges.some(([s, e]) => start >= s && end <= e))
+        return false
+      if (includeRanges.some(([s, e]) => start >= s && end <= e))
+        return true
+      return false
+    })
+    .sort((a, b) => a[0] - b[0])
 }
 
 // remove @unocss/transformer-directives transformer to get matched result from source code
@@ -199,21 +202,31 @@ const ignoreTransformers = [
   '@unocss/transformer-compile-class',
 ]
 
-export async function getMatchedPositionsFromCode(uno: UnoGenerator, code: string, id = '') {
+export async function getMatchedPositionsFromCode(
+  uno: UnoGenerator,
+  code: string,
+  id = '',
+  options: GetMatchedPositionsOptions = {},
+) {
   const s = new MagicString(code)
   const tokens = new Set()
   const ctx = { uno, tokens } as any
 
   const transformers = uno.config.transformers?.filter(i => !ignoreTransformers.includes(i.name))
-  for (const i of transformers?.filter(i => i.enforce === 'pre') || [])
-    await i.transform(s, id, ctx)
-  for (const i of transformers?.filter(i => !i.enforce || i.enforce === 'default') || [])
-    await i.transform(s, id, ctx)
-  for (const i of transformers?.filter(i => i.enforce === 'post') || [])
-    await i.transform(s, id, ctx)
-  const hasVariantGroup = !!uno.config.transformers?.find(i => i.name === '@unocss/transformer-variant-group')
+  const annotations = []
+  for (const enforce of ['pre', 'default', 'post']) {
+    for (const i of transformers?.filter(i => (i.enforce ?? 'default') === enforce) || []) {
+      const result = await i.transform(s, id, ctx)
+      const _annotations = result?.highlightAnnotations
+      if (_annotations)
+        annotations.push(..._annotations)
+    }
+  }
 
   const { pug, code: pugCode } = await isPug(uno, s.toString(), id)
   const result = await uno.generate(pug ? pugCode : s.toString(), { preflights: false })
-  return getMatchedPositions(code, [...result.matched], hasVariantGroup, pug, uno)
+  return getMatchedPositions(code, [...result.matched], annotations, {
+    isPug: pug,
+    ...options,
+  })
 }

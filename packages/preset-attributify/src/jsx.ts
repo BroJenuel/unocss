@@ -8,6 +8,8 @@ export type TwoStringsCompositionSuffix =
   | 'l'
   | 't'
   | 'a'
+  | 'x'
+  | 'y'
 
 /** Some words can compose with two strings to become a complete unocss rule such as ha, mr, mb */
 export type TwoStringsComposition = `${TwoStringsCompositionPrefix}${TwoStringsCompositionSuffix}` | 'ha' | 'wa'
@@ -18,7 +20,6 @@ export type SpecialSingleWord =
   | 'flex'
   | 'block'
   | 'inline'
-  | 'block'
   | 'table'
   | 'isolate'
   | 'absolute'
@@ -52,19 +53,6 @@ export type SpecialSingleWord =
   | 'resize'
   | 'transform'
   | 'filter'
-
-export type StringNumberCompositionPrefix =
-  | 'op'
-  | 'opacity'
-  | 'fw'
-  | 'p'
-  | 'm'
-  | 'w'
-  | 'h'
-  | 'z'
-
-/** Some words can be a complete unocss rule by compose a string and a number, such as op80, fw300, p2, p10px */
-export type StringNumberComposition = `${StringNumberCompositionPrefix}${number}${'px' | ''}`
 
 export type PseudoPrefix =
   | 'active'
@@ -105,6 +93,7 @@ export type SeparateEnabled =
   | 'filter'
   | 'flex'
   | 'font'
+  | 'fw'
   | 'gap'
   | 'gradient'
   | 'grid'
@@ -114,6 +103,7 @@ export type SeparateEnabled =
   | 'justify'
   | 'list'
   | 'm'
+  | 'op'
   | 'opacity'
   | 'order'
   | 'outline'
@@ -121,9 +111,11 @@ export type SeparateEnabled =
   | 'p'
   | 'place'
   | 'pos'
+  | 'position'
   | 'ring'
   | 'select'
   | 'shadow'
+  | 'size'
   | 'space'
   | 'table'
   | 'text'
@@ -134,7 +126,7 @@ export type SeparateEnabled =
   | 'z'
   | PseudoPrefix
 
-export type BasicAttributes = StringNumberComposition | SpecialSingleWord | TwoStringsComposition | SeparateEnabled
+export type BasicAttributes = SpecialSingleWord | TwoStringsComposition | SeparateEnabled
 
 export type AttributifyNames<Prefix extends string = ''> =
   | `${Prefix}${BasicAttributes}`

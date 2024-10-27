@@ -21,10 +21,9 @@ Enables the [variant group feature](https://windicss.org/features/variant-groups
   ```
 :::
 
-```ts
-// uno.config.ts
-import { defineConfig } from 'unocss'
+```ts [uno.config.ts]
 import transformerVariantGroup from '@unocss/transformer-variant-group'
+import { defineConfig } from 'unocss'
 
 export default defineConfig({
   // ...
@@ -33,6 +32,14 @@ export default defineConfig({
   ],
 })
 ```
+
+::: tip
+This preset is included in the `unocss` package, you can also import it from there:
+
+```ts
+import { transformerVariantGroup } from 'unocss'
+```
+:::
 
 ## Usage
 
@@ -44,7 +51,7 @@ Will be transformed to:
 
 ```html
 <div class="hover:bg-gray-400 hover:font-medium font-light font-mono"/>
-``` 
+```
 
 ## License
 

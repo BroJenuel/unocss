@@ -1,23 +1,23 @@
-import prettier from 'prettier/standalone'
-import parserCSS from 'prettier/parser-postcss'
-import parserHTML from 'prettier/parser-html'
+import type { MaybeRefOrGetter } from '@vueuse/core'
+import { toValue } from '@vueuse/core'
 import parserBabel from 'prettier/parser-babel'
-import { resolveUnref } from '@vueuse/core'
+import parserHTML from 'prettier/parser-html'
+import parserCSS from 'prettier/parser-postcss'
+import prettier from 'prettier/standalone'
 import { computed } from 'vue'
-import type { MaybeComputedRef } from '@vueuse/core'
 
-export function usePrettify(content: MaybeComputedRef<string | undefined>, toggle: MaybeComputedRef<boolean>, type: 'css' | 'babel' | 'html') {
+export function usePrettify(content: MaybeRefOrGetter<string | undefined>, toggle: MaybeRefOrGetter<boolean>, type: 'css' | 'babel' | 'html') {
   const plugins = {
     css: parserCSS,
     html: parserHTML,
     babel: parserBabel,
   }
   return computed(() => {
-    if (!resolveUnref(toggle))
-      return resolveUnref(content) || '/* empty */'
+    if (!toValue(toggle))
+      return toValue(content) || '/* empty */'
 
     try {
-      return prettier.format(resolveUnref(content) || '', {
+      return prettier.format(toValue(content) || '', {
         parser: type,
         plugins: [plugins[type]],
         singleQuote: true,
@@ -26,19 +26,19 @@ export function usePrettify(content: MaybeComputedRef<string | undefined>, toggl
     }
     catch (e: any) {
       console.error(e)
-      return `/* Error on prettifying: ${e.message} */\n${resolveUnref(content) || ''}`
+      return `/* Error on prettifying: ${e.message} */\n${toValue(content) || ''}`
     }
   })
 }
 
-export function useCSSPrettify(content: MaybeComputedRef<string | undefined>, toggle: MaybeComputedRef<boolean> = true) {
+export function useCSSPrettify(content: MaybeRefOrGetter<string | undefined>, toggle: MaybeRefOrGetter<boolean> = true) {
   return usePrettify(content, toggle, 'css')
 }
 
-export function useHTMLPrettify(content: MaybeComputedRef<string | undefined>, toggle: MaybeComputedRef<boolean> = true) {
+export function useHTMLPrettify(content: MaybeRefOrGetter<string | undefined>, toggle: MaybeRefOrGetter<boolean> = true) {
   return usePrettify(content, toggle, 'html')
 }
 
-export function useJSPrettify(content: MaybeComputedRef<string | undefined>, toggle: MaybeComputedRef<boolean> = true) {
+export function useJSPrettify(content: MaybeRefOrGetter<string | undefined>, toggle: MaybeRefOrGetter<boolean> = true) {
   return usePrettify(content, toggle, 'babel')
 }

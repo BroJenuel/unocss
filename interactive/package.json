@@ -1,6 +1,7 @@
 {
   "name": "interactive",
   "type": "module",
+  "version": "0.63.6",
   "private": true,
   "scripts": {
     "build": "nuxi prepare && esno scripts/prepare.ts && nuxi generate",
@@ -9,24 +10,27 @@
     "fetch": "esno scripts/fetch.ts"
   },
   "devDependencies": {
-    "@antfu/utils": "^0.7.2",
-    "@nuxt/devtools": "^0.4.5",
+    "@antfu/utils": "catalog:",
+    "@nuxt/devtools": "catalog:",
+    "@shikijs/markdown-it": "catalog:",
     "@unocss/autocomplete": "workspace:*",
     "@unocss/nuxt": "workspace:*",
     "@unocss/shared-docs": "workspace:*",
-    "@vueuse/nuxt": "^10.1.2",
-    "esno": "^0.16.3",
-    "fs-extra": "^11.1.1",
-    "fuse.js": "^6.6.2",
-    "js-yaml": "^4.1.0",
-    "knitwork": "^1.0.0",
-    "markdown-it-link-attributes": "^4.0.1",
-    "nuxt": "^3.3.1",
-    "p-limit": "^4.0.0",
-    "postcss-nested": "^6.0.1",
-    "prettier": "^2.8.8",
-    "shiki": "^0.14.2",
-    "theme-vitesse": "^0.6.4",
-    "vite-plugin-vue-markdown": "^0.23.0"
+    "@vueuse/nuxt": "catalog:",
+    "esno": "catalog:",
+    "fs-extra": "catalog:",
+    "fuse.js": "catalog:",
+    "js-yaml": "catalog:",
+    "knitwork": "catalog:",
+    "markdown-it-link-attributes": "catalog:",
+    "nuxt": "catalog:",
+    "p-limit": "catalog:",
+    "postcss-nested": "catalog:",
+    "prettier": "catalog:",
+    "shiki": "catalog:",
+    "theme-vitesse": "catalog:",
+    "unplugin-vue-markdown": "catalog:",
+    "vue": "catalog:",
+    "vue-virtual-scroller": "catalog:"
   }
 }

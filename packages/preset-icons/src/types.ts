@@ -1,6 +1,18 @@
-import type { CustomIconLoader, IconCustomizations, InlineCollection } from '@iconify/utils/lib/loader/types'
-import type { Awaitable } from '@unocss/core'
 import type { IconifyJSON } from '@iconify/types'
+import type { CustomIconLoader, IconCustomizations, InlineCollection } from '@iconify/utils'
+import type { Awaitable, CSSObject } from '@unocss/core'
+
+interface IconMeta {
+  collection: string
+  name: string
+  svg: string
+  mode?: IconsOptions['mode']
+
+  /**
+   * @deprecated renamed to `name`
+   */
+  icon: string
+}
 
 export interface IconsOptions {
   /**
@@ -9,6 +21,7 @@ export interface IconsOptions {
    * @default 1
    */
   scale?: number
+
   /**
    * Mode of generated CSS icons.
    *
@@ -19,48 +32,63 @@ export interface IconsOptions {
    * @default 'auto'
    * @see https://antfu.me/posts/icons-in-pure-css
    */
-  mode?: 'mask' | 'background-img' | 'auto'
+  mode?: 'mask' | 'bg' | 'auto'
+
   /**
    * Class prefix for matching icon rules.
    *
    * @default `i-`
    */
   prefix?: string | string[]
+
   /**
    * Extra CSS properties applied to the generated CSS
    *
    * @default {}
    */
   extraProperties?: Record<string, string>
+
   /**
    * Emit warning when missing icons are matched
    *
    * @default false
    */
   warn?: boolean
+
   /**
    * In Node.js environment, the preset will search for the installed iconify dataset automatically.
    * When using in the browser, this options is provided to provide dataset with custom loading mechanism.
    */
   collections?: Record<string, (() => Awaitable<IconifyJSON>) | undefined | CustomIconLoader | InlineCollection>
+
   /**
    * Rule layer
    *
    * @default 'icons'
    */
   layer?: string
+
   /**
    * Custom icon customizations.
    */
   customizations?: Omit<IconCustomizations, 'additionalProps' | 'trimCustomSvg'>
+
   /**
    * Auto install icon sources package when the usages is detected
    *
-   * **WARNING**: only on `node` environment, on `browser` this option will be ignored.
+   * Only effective in Node.js environment.
    *
    * @default false
    */
   autoInstall?: boolean
+
+  /**
+   * Path to resolve the iconify collections in Node.js environment.
+   *
+   * @default process.cwd()
+   */
+  collectionsNodeResolvePath?: string | string[]
+
   /**
    * Custom icon unit.
    *
@@ -76,4 +104,14 @@ export interface IconsOptions {
    * - https://cdn.skypack.dev/
    */
   cdn?: string
+
+  /**
+   * Custom fetch function to provide the icon data.
+   */
+  customFetch?: (url: string) => Promise<any>
+
+  /**
+   * Processor for the CSS object before stringify
+   */
+  processor?: (cssObject: CSSObject, meta: Required<IconMeta>) => void
 }

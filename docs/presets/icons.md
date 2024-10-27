@@ -25,7 +25,7 @@ Follow the following conventions to use the icons
 - `<prefix><collection>-<icon>`
 - `<prefix><collection>:<icon>`
 
-For examples:
+For example:
 
 ```html
 <!-- A basic anchor icon from Phosphor icons -->
@@ -45,7 +45,7 @@ For examples:
   <div class="i-mdi:alarm text-orange-400 hover:text-teal-400" />
   <div class="w-2em h-2em i-logos:vue transform transition-800 hover:rotate-180" />
   <button class="i-carbon:sun dark:i-carbon:moon !w-2em !h-2em" @click="toggleDark()" title="toggle dark mode"/>
-  <div class="i-twemoji:grinning-face-with-smiling-eyes hover:i-twemoji:face-with-tears-of-joy" /> 
+  <div class="i-twemoji:grinning-face-with-smiling-eyes hover:i-twemoji:face-with-tears-of-joy" />
   <div class="text-base my-auto flex"><div class="i-carbon:arrow-left my-auto mr-1" /> Hover it</div>
 </div>
 
@@ -53,16 +53,23 @@ Check [all available icons](https://icones.js.org/).
 
 ## Install
 
-```bash
-npm i -D @unocss/preset-icons @iconify-json/[the-collection-you-want]
-```
+::: code-group
+  ```bash [pnpm]
+  pnpm add -D @unocss/preset-icons @iconify-json/[the-collection-you-want]
+  ```
+  ```bash [yarn]
+  yarn add -D @unocss/preset-icons @iconify-json/[the-collection-you-want]
+  ```
+  ```bash [npm]
+  npm install -D @unocss/preset-icons @iconify-json/[the-collection-you-want]
+  ```
+:::
 
 We use [Iconify](https://iconify.design) as our data source of icons. You need to install the corresponding icon-set in `devDependencies` by following the `@iconify-json/*` pattern. For example, `@iconify-json/mdi` for [Material Design Icons](https://materialdesignicons.com/), `@iconify-json/tabler` for [Tabler](https://tabler-icons.io/). You can refer to [Icônes](https://icones.js.org/) or [Iconify](https://icon-sets.iconify.design/) for all the collections available.
 
-```ts
-// uno.config.ts
-import { defineConfig } from 'unocss'
+```ts [uno.config.ts]
 import presetIcons from '@unocss/preset-icons'
+import { defineConfig } from 'unocss'
 
 export default defineConfig({
   presets: [
@@ -84,15 +91,23 @@ import { presetIcons } from 'unocss'
 You can also use this preset alone as a complement to your existing UI frameworks to have pure CSS icons!
 :::
 
-If you prefer to install the all the icon sets available on Iconify at once (~130MB):
+If you prefer to install all the icon sets available on Iconify at once (~130MB):
 
-```bash
-npm i -D @iconify/json
-```
+::: code-group
+  ```bash [pnpm]
+  pnpm add -D @iconify/json
+  ```
+  ```bash [yarn]
+  yarn add -D @iconify/json
+  ```
+  ```bash [npm]
+  npm install -D @iconify/json
+  ```
+:::
 
 ### Extra Properties
 
-You can provide the extra CSS properties to control the default behavior of the icons. The following is an example of make icons inlined by default:
+You can provide the extra CSS properties to control the default behavior of the icons. The following is an example of making icons inlined by default:
 
 ```ts
 presetIcons({
@@ -184,16 +199,17 @@ And then, you can use it on your html: `<span class="i-custom:circle"></span>`
 
 ### Node.js
 
-In `Node.js` the preset will search for the installed iconify dataset automatically and so you don't need to register the `iconify` collections.
+In `Node.js` the preset will search for the installed iconify dataset automatically, so you don't need to register the `iconify` collections.
 
-You can also provide your own custom collections using also [CustomIconLoader](https://github.com/iconify/iconify/blob/master/packages/utils/src/loader/types.ts#L17) or [InlineCollection](https://github.com/iconify/iconify/blob/master/packages/utils/src/loader/types.ts#L86).
+You can also provide your own custom collections using also [CustomIconLoader](https://github.com/iconify/iconify/blob/master/packages/utils/src/loader/types.ts#L24) or [InlineCollection](https://github.com/iconify/iconify/blob/master/packages/utils/src/loader/types.ts#L100).
+
+#### FileSystemIconLoader
 
 Additionally, you can also use [FileSystemIconLoader](https://github.com/iconify/iconify/blob/master/packages/utils/src/loader/node-loaders.ts#L9) to load your custom icons from your file system. You will need to install `@iconify/utils` package as `dev dependency`.
 
-```ts
-// uno.config.ts
+```ts [unocss.config.ts]
 import fs from 'node:fs/promises'
-import { defineConfig } from 'unocss'
+import { defineConfig, presetIcons } from 'unocss'
 
 // loader helpers
 import { FileSystemIconLoader } from '@iconify/utils/lib/loader/node-loaders'
@@ -220,6 +236,51 @@ export default defineConfig({
         'my-yet-other-icons': FileSystemIconLoader(
           './assets/icons',
           svg => svg.replace(/#fff/, 'currentColor')
+        )
+      }
+    })
+  ]
+})
+```
+
+#### ExternalPackageIconLoader
+
+From `@iconify/utils v2.1.20` you can use other packages to load icons from others authors using the new [createExternalPackageIconLoader](https://github.com/iconify/iconify/blob/main/packages/utils/src/loader/external-pkg.ts#L13) helper.
+
+::: warning WARNING
+External packages must include `icons.json` file with the `icons` data in `IconifyJSON` format, which can be exported with Iconify Tools. Check [Exporting icon set as JSON package](https://iconify.design/docs/libraries/tools/export/json-package.html) for more details.
+:::
+
+For example, you can use `an-awesome-collection` or `@my-awesome-collections/some-collection` to load your custom or third party icons:
+```ts [unocss.config.ts]
+import { createExternalPackageIconLoader } from '@iconify/utils/lib/loader/external-pkg'
+import { defineConfig, presetIcons } from 'unocss'
+
+export default defineConfig({
+  presets: [
+    presetIcons({
+      collections: createExternalPackageIconLoader('an-awesome-collection')
+    })
+  ]
+})
+```
+
+You can also combine it with other custom icon loaders, for example:
+```ts [unocss.config.ts]
+import { createExternalPackageIconLoader } from '@iconify/utils/lib/loader/external-pkg'
+import { defineConfig, presetIcons } from 'unocss'
+import { FileSystemIconLoader } from 'unplugin-icons/loaders'
+
+export default defineConfig({
+  presets: [
+    presetIcons({
+      collections: {
+        ...createExternalPackageIconLoader('other-awesome-collection'),
+        ...createExternalPackageIconLoader('@my-awesome-collections/some-collection'),
+        ...createExternalPackageIconLoader('@my-awesome-collections/some-other-collection'),
+        'my-yet-other-icons': FileSystemIconLoader(
+          './assets/icons',
+          svg => svg.replace(/^<svg /, '<svg fill="currentColor" ')
         )
       }
     })
@@ -322,6 +383,22 @@ presetIcons({
 })
 ```
 
+## Directives
+
+You can use the `icon()` directive in your CSS to get the metadata of the icon.
+
+```css
+.icon {
+  background-image: icon('i-carbon-sun');
+}
+```
+
+::: warning
+`icon()` depends on `@unocss/preset-icons` and will use the configuration, make sure you have added this preset.
+:::
+
+More about `icon()` directive, check [Directives](/transformers/directives#icon).
+
 ## Options
 
 ### scale
@@ -333,7 +410,7 @@ Scale related to the current font size (1em).
 
 ### mode
 
-- Type: `'mask' | 'background-img' | 'auto'`
+- Type: `'mask' | 'bg' | 'auto'`
 - Default: `'auto'`
 - See: https://antfu.me/posts/icons-in-pure-css
 
@@ -341,8 +418,8 @@ Mode of generated CSS icons.
 
 :::tip
 - `mask` - use background color and the `mask` property for monochrome icons
-- `background-img` - use background image for the icons, colors are static
-- `auto` - smartly decide mode between `mask` and `background-img` per icon based on its style
+- `bg` - use background image for the icons, colors are static
+- `auto` - smartly decide mode between `mask` and `bg` per icon based on its style
 :::
 
 ### prefix
@@ -417,7 +494,30 @@ Recommends:
 - `https://esm.sh/`
 - `https://cdn.skypack.dev/`
 
-### Advanced Custom Icon Set Cleanup
+### customFetch
+
+- Type: `(url: string) => Promise<any>`
+- Default: `undefined`
+
+Preset used [`ofetch`](https://github.com/unjs/ofetch) as the default fetcher, you can also custom fetch function to provide the icon data.
+
+### processor
+
+- Type: `(cssObject: CSSObject, meta: Required<IconMeta>) => void`
+- Default: `undefined`
+
+```ts
+interface IconMeta {
+  collection: string
+  icon: string
+  svg: string
+  mode?: IconsOptions['mode']
+}
+```
+
+Processor for the CSS object before stringify. See [example](https://github.com/unocss/unocss/blob/7d83789b0dee8c72c401db24263ea429086de95d/test/preset-icons.test.ts#L66-L82).
+
+## Advanced Custom Icon Set Cleanup
 
 When using this preset with your custom icons, consider using a cleanup process similar to that done by [Iconify](https://iconify.design/) for any icons sets. All the tools you need are available in [Iconify Tools](https://iconify.design/docs/libraries/tools/).
 

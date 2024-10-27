@@ -1,23 +1,29 @@
-// https://vitepress.dev/guide/custom-theme
+import type { Theme } from 'vitepress'
+import TwoslashFloatingVue from '@shikijs/vitepress-twoslash/client'
+import DefaultTheme from 'vitepress/theme'
 import { h, watch } from 'vue'
-import Theme from 'vitepress/theme'
+import RainbowAnimationSwitcher from './components/RainbowAnimationSwitcher.vue'
+import UnoCSSLayout from './UnoCSSLayout.vue'
+
+import '@shikijs/vitepress-twoslash/style.css'
+
 import './rainbow.css'
 import './vars.css'
 import './overrides.css'
 import 'uno.css'
-
-import HomePage from './components/HomePage.vue'
+import 'virtual:group-icons.css'
 
 let homePageStyle: HTMLStyleElement | undefined
 
 export default {
-  ...Theme,
+  extends: DefaultTheme,
   Layout: () => {
-    return h(Theme.Layout, null, {
-      'home-features-after': () => h(HomePage),
-    })
+    return h(UnoCSSLayout)
   },
-  enhanceApp({ router }) {
+  enhanceApp({ app, router }) {
+    app.component('RainbowAnimationSwitcher', RainbowAnimationSwitcher)
+    app.use(TwoslashFloatingVue)
+
     if (typeof window === 'undefined')
       return
 
@@ -27,7 +33,7 @@ export default {
       { immediate: true },
     )
   },
-}
+} satisfies Theme
 
 if (typeof window !== 'undefined') {
   // detect browser, add to class for conditional styling

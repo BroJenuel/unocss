@@ -12,8 +12,7 @@ Presets are the heart of UnoCSS. They let you make your own custom framework in 
 
 To set presets to your project:
 
-```ts
-// uno.config.ts
+```ts twoslash [uno.config.ts]
 import { defineConfig, presetAttributify, presetUno } from 'unocss'
 
 export default defineConfig({
@@ -29,8 +28,7 @@ When the `presets` option is specified, the default preset will be ignored.
 
 To disable the default preset, you can set `presets` to an empty array:
 
-```ts
-// uno.config.ts
+```ts twoslash [uno.config.ts]
 import { defineConfig } from 'unocss'
 
 export default defineConfig({
@@ -41,4 +39,8 @@ export default defineConfig({
 })
 ```
 
-You can check [official presets](/presets/) and [community presets](/presets/community) for more. 
+You can check [official presets](/presets/) and [community presets](/presets/community) for more.
+
+### Creating presets
+
+To see how you can create your own custom preset, see [Config: presets](/config/presets).

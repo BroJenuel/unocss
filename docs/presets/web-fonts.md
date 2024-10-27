@@ -26,11 +26,10 @@ See [all supported providers](#providers).
   ```
 :::
 
-```ts
-// uno.config.ts
-import { defineConfig } from 'unocss'
-import presetWebFonts from '@unocss/preset-web-fonts'
+```ts [uno.config.ts]
 import presetUno from '@unocss/preset-uno'
+import presetWebFonts from '@unocss/preset-web-fonts'
+import { defineConfig } from 'unocss'
 
 export default defineConfig({
   presets: [
@@ -40,7 +39,6 @@ export default defineConfig({
 })
 ```
 
-
 ::: tip
 This preset is included in the `unocss` package, you can also import it from there:
 
@@ -48,7 +46,6 @@ This preset is included in the `unocss` package, you can also import it from the
 import { presetWebFonts } from 'unocss'
 ```
 :::
-
 
 ## Providers
 
@@ -67,20 +64,19 @@ PR welcome to add more providers. 🙌
 
 Use your own function to fetch font source.
 
-```ts
-// uno.config.ts
-import { defineConfig } from 'unocss'
-import presetWebFonts from '@unocss/preset-web-fonts'
+```ts [uno.config.ts]
 import presetUno from '@unocss/preset-uno'
+import presetWebFonts from '@unocss/preset-web-fonts'
 import axios from 'axios'
 import ProxyAgent from 'proxy-agent'
+import { defineConfig } from 'unocss'
 
 export default defineConfig({
   presets: [
     presetUno(),
     presetWebFonts({
       // use axios with an https proxy
-      customFetch: (url: string) => axios.get(url, { httpsAgent: new ProxyAgent('https://localhost:7890') }),
+      customFetch: (url: string) => axios.get(url, { httpsAgent: new ProxyAgent('https://localhost:7890') }).then(it => it.data),
       provider: 'google',
       fonts: {
         sans: 'Roboto',
@@ -145,7 +141,6 @@ Inline CSS `@import()`.
 
 Use your own function to fetch font source. See [Custom fetch function](#custom-fetch-function).
 
-
 ## Example
 
 ```ts
@@ -195,3 +190,44 @@ The following CSS will be generated automatically:
     "Noto Color Emoji";
 }
 ```
+
+## Serve Fonts Locally
+
+By default the preset will fetch the fonts from the provider's CDN. If you want to serve the fonts locally, you can download the fonts and serve them from your own server using the processor from `@unocss/preset-web-fonts/local`.
+
+```ts
+import presetWebFonts from '@unocss/preset-web-fonts'
+import { createLocalFontProcessor } from '@unocss/preset-web-fonts/local'
+import { defineConfig } from 'unocss'
+
+export default defineConfig({
+  presets: [
+    presetWebFonts({
+      provider: 'none',
+      fonts: {
+        sans: 'Roboto',
+        mono: 'Fira Code',
+      },
+      // This will download the fonts and serve them locally
+      processors: createLocalFontProcessor({
+        // Directory to cache the fonts
+        cacheDir: 'node_modules/.cache/unocss/fonts',
+
+        // Directory to save the fonts assets
+        fontAssetsDir: 'public/assets/fonts',
+
+        // Base URL to serve the fonts from the client
+        fontServeBaseUrl: '/assets/fonts'
+      })
+    }),
+  ],
+})
+```
+
+This will download the fonts assets to `public/assets/fonts` and serve them from `/assets/fonts` on the client. When doing this, please make sure the license of the fonts allows you to redistribute so, the tool is not responsible for any legal issues.
+
+::: info
+
+This feature is Node.js specific and will not work in the browser.
+
+:::

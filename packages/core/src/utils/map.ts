@@ -42,20 +42,35 @@ export class TwoKeyMap<K1, K2, V> {
 
   map<T>(fn: (v: V, k1: K1, k2: K2) => T): T[] {
     return Array.from(this._map.entries())
-      .flatMap(([k1, m2]) =>
-        Array.from(m2.entries())
-          .map(([k2, v]) => {
-            return fn(v, k1, k2)
-          }),
-      )
+      .flatMap(([k1, m2]) => Array.from(m2.entries())
+        .map(([k2, v]) => {
+          return fn(v, k1, k2)
+        }))
   }
 }
 
 export class BetterMap<K, V> extends Map<K, V> {
+  getFallback(key: K, fallback: V): V {
+    const v = this.get(key)
+    if (v === undefined) {
+      this.set(key, fallback)
+      return fallback
+    }
+    return v
+  }
+
   map<R>(mapFn: (value: V, key: K) => R): R[] {
     const result: R[] = []
     this.forEach((v, k) => {
       result.push(mapFn(v, k))
+    })
+    return result
+  }
+
+  flatMap<R extends readonly unknown[]>(mapFn: (value: V, key: K) => R): R[number][] {
+    const result: R[number][] = []
+    this.forEach((v, k) => {
+      result.push(...mapFn(v, k))
     })
     return result
   }

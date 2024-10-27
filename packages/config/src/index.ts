@@ -1,7 +1,8 @@
-import { dirname, resolve } from 'node:path'
-import fs from 'node:fs'
 import type { UserConfig, UserConfigDefaults } from '@unocss/core'
 import type { LoadConfigResult, LoadConfigSource } from 'unconfig'
+import fs from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import process from 'node:process'
 import { createConfigLoader as createLoader } from 'unconfig'
 
 export type { LoadConfigResult, LoadConfigSource }
@@ -65,4 +66,34 @@ export async function loadConfig<U extends UserConfig>(
   }
 
   return result
+}
+
+/**
+ * Create a factory function that returns a config loader that recovers from errors.
+ *
+ * When it fails to load the config, it will return the last successfully loaded config.
+ *
+ * Mainly used for dev-time where users might have a broken config in between changes.
+ */
+export function createRecoveryConfigLoader<U extends UserConfig>() {
+  let lastResolved: LoadConfigResult<U> | undefined
+  return async (
+    cwd = process.cwd(),
+    configOrPath: string | U = cwd,
+    extraConfigSources: LoadConfigSource[] = [],
+    defaults: UserConfigDefaults = {},
+  ) => {
+    try {
+      const config = await loadConfig(cwd, configOrPath, extraConfigSources, defaults)
+      lastResolved = config
+      return config
+    }
+    catch (e) {
+      if (lastResolved) {
+        console.error(e)
+        return lastResolved
+      }
+      throw e
+    }
+  }
 }

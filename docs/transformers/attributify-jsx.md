@@ -59,8 +59,7 @@ export function Component() {
   ```
 :::
 
-```ts{12}
-// uno.config.ts
+```ts{11} [uno.config.ts]
 import { defineConfig, presetAttributify } from 'unocss'
 import transformerAttributifyJsx from '@unocss/transformer-attributify-jsx'
 
@@ -68,13 +67,21 @@ export default defineConfig({
   // ...
   presets: [
     // ...
-    presetAttributify()
+    presetAttributify(),
   ],
   transformers: [
     transformerAttributifyJsx(), // <--
   ],
 })
 ```
+
+::: tip
+This preset is included in the `unocss` package, you can also import it from there:
+
+```ts
+import { transformerAttributifyJsx } from 'unocss'
+```
+:::
 
 ## Caveats
 

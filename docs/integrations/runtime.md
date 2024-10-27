@@ -6,21 +6,21 @@ outline: deep
 
 # Runtime
 
-UnoCSS runtime provide a CDN build that runs the UnoCSS engine right in the browser. It will detect the DOM changes and generate the styles on the fly.
+UnoCSS runtime provide a CDN build that runs the UnoCSS right in the browser. It will detect the DOM changes and generate the styles on the fly.
 
 ## Usage
 
 Add the following line to your `index.html`:
 
-```html
+```html [index.html]
 <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
 ```
 
-To configure UnoCSS (optional):
+The runtime may be configured by defining the configuration before loading the runtime:
 
 ```html
+<!-- define unocss options... -->
 <script>
-// pass unocss options
 window.__unocss = {
   rules: [
     // custom rules...
@@ -31,6 +31,8 @@ window.__unocss = {
   // ...
 }
 </script>
+<!-- ... and then load the runtime -->
+<script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
 ```
 
 By default, the [Uno preset](/presets/uno) is be applied.
@@ -46,14 +48,6 @@ The runtime does not come with preflights, if you want to have style resets, you
 ## Builds
 
 Several builds are available for different use cases.
-
-### Core
-
-Without any preset:
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/core.global.js"></script>
-```
 
 ### Uno (default)
 
@@ -79,6 +73,25 @@ With `@unocss/preset-mini` and `@unocss/preset-attributify` preset:
 <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/mini.global.js"></script>
 ```
 
+### Core
+
+If you need to mix and match presets, you can load only the core runtime and assign the presets manually. All the [official presets](/presets/#presets) from UnoCSS are available. Load the one you need before initializing the core runtime.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/preset-icons.global.js"></script>
+<script>
+  window.__unocss = {
+    presets: [
+      () => window.__unocss_runtime.presets.presetIcons({
+        scale: 1.2,
+        cdn: 'https://esm.sh/'
+      }),
+    ],
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/core.global.js"></script>
+```
+
 ## Bundler Usage
 
 ```bash
@@ -91,20 +104,42 @@ import initUnocssRuntime from '@unocss/runtime'
 initUnocssRuntime({ /* options */ })
 ```
 
+A UnoCSS config can be provided using the `defaults` property:
+
+```ts
+import initUnocssRuntime from '@unocss/runtime'
+import config from './uno.config'
+
+initUnocssRuntime({ defaults: config })
+```
+
+Presets can be imported from `esm.sh`:
+
+```ts
+import { defineConfig } from '@unocss/runtime'
+import presetIcons from 'https://esm.sh/@unocss/preset-icons/browser'
+import presetUno from 'https://esm.sh/@unocss/preset-uno'
+
+export default defineConfig({
+  presets: [presetUno(), presetIcons({ cdn: 'https://esm.sh/' })],
+})
+```
+
 ## Preventing FOUC
 
-Since UnoCSS runs after the DOM is present, there can be a "flash of unstyled content" (FOUC) which may leads the user to see the page as unstyled.
+Since UnoCSS runs after the DOM is ready, there can be a "flash of unstyled content" (FOUC) which may leads the user to see the page as unstyled.
 
 Use `un-cloak` attribute with CSS rules such as `[un-cloak] { display: none }` to hide the unstyled element until UnoCSS applies the styles for it.
 
-```css
-[un-cloak] {
-  display: none;
-}
-```
-
-```html
-<div class="text-blue-500" un-cloak>
-  This text will only be visible in blue color.
-</div>
-```
+::: code-group
+  ```css
+  [un-cloak] {
+    display: none;
+  }
+  ```
+  ```html
+  <div class="text-blue-500" un-cloak>
+    This text will only be visible in blue color.
+  </div>
+  ```
+:::

@@ -1,15 +1,14 @@
-import type { CSSEntries, CSSObject, CSSValue, DeepPartial, Rule, Shortcut, StaticRule, StaticShortcut } from '../types'
+import type { CSSEntries, CSSEntriesInput, CSSObjectInput, CSSValue, CSSValueInput, DeepPartial, Rule, Shortcut, StaticRule, StaticShortcut } from '../types'
 import { isString } from './basic'
 
-export function normalizeCSSEntries(obj: string | CSSEntries | CSSObject): string | CSSEntries {
+export function normalizeCSSEntries(obj: string | CSSEntriesInput | CSSObjectInput): string | CSSEntries {
   if (isString(obj))
     return obj
-  return (!Array.isArray(obj) ? Object.entries(obj) : obj).filter(i => i[1] != null)
+  return (!Array.isArray(obj) ? Object.entries(obj) : obj).filter(i => i[1] != null) as CSSEntries
 }
 
-export function normalizeCSSValues(obj: CSSValue | string | (CSSValue | string)[]): (string | CSSEntries)[] {
+export function normalizeCSSValues(obj: CSSValueInput | string | (CSSValueInput | string)[]): (string | CSSEntries)[] {
   if (Array.isArray(obj)) {
-    // @ts-expect-error type cast
     if (obj.find(i => !Array.isArray(i) || Array.isArray(i[0])))
       return (obj as (string | CSSValue)[]).map(i => normalizeCSSEntries(i))
     else
@@ -38,7 +37,7 @@ export function entriesToCss(arr?: CSSEntries) {
   if (arr == null)
     return ''
   return clearIdenticalEntries(arr)
-    .map(([key, value]) => value != null ? `${key}:${value};` : undefined)
+    .map(([key, value]) => (value != null && typeof value !== 'function') ? `${key}:${value};` : undefined)
     .filter(Boolean)
     .join('')
 }
@@ -77,7 +76,7 @@ export function clone<T>(val: T): T {
   let k: any, out: any, tmp: any
 
   if (Array.isArray(val)) {
-    out = Array(k = val.length)
+    out = Array.from({ length: k = val.length })
     // eslint-disable-next-line no-cond-assign
     while (k--) out[k] = ((tmp = val[k]) && typeof tmp === 'object') ? clone(tmp) : tmp
     return out as any

@@ -1,19 +1,21 @@
 import type { Variant } from '@unocss/core'
 import type { PresetMiniOptions } from '..'
 import type { Theme } from '../theme'
+import { variantAria, variantTaggedAriaAttributes } from './aria'
 import { variantBreakpoints } from './breakpoints'
+import { variantChildren } from './children'
 import { variantCombinators } from './combinators'
+import { variantContainerQuery } from './container'
 import { variantColorsMediaOrClass } from './dark'
+import { variantDataAttribute, variantTaggedDataAttributes } from './data'
 import { variantLanguageDirections } from './directions'
-import { variantCssLayer, variantInternalLayer, variantScope, variantSelector, variantVariables } from './misc'
-import { variantNegative } from './negative'
 import { variantImportant } from './important'
 import { variantCustomMedia, variantPrint } from './media'
+import { variantCssLayer, variantInternalLayer, variantScope, variantSelector, variantTheme, variantVariables } from './misc'
+import { variantNegative } from './negative'
+import { variantPartClasses, variantPseudoClassesAndElements, variantPseudoClassFunctions, variantTaggedPseudoClasses } from './pseudo'
+import { variantStartingStyle } from './startingstyle'
 import { variantSupports } from './supports'
-import { partClasses, variantPseudoClassFunctions, variantPseudoClassesAndElements, variantTaggedPseudoClasses } from './pseudo'
-import { variantAria } from './aria'
-import { variantDataAttribute } from './data'
-import { variantContainerQuery } from './container'
 
 export function variants(options: PresetMiniOptions): Variant<Theme>[] {
   return [
@@ -24,6 +26,7 @@ export function variants(options: PresetMiniOptions): Variant<Theme>[] {
     variantSelector,
     variantInternalLayer,
     variantNegative,
+    variantStartingStyle,
     variantImportant(),
     variantSupports,
     variantPrint,
@@ -35,12 +38,17 @@ export function variants(options: PresetMiniOptions): Variant<Theme>[] {
     variantPseudoClassFunctions(),
     ...variantTaggedPseudoClasses(options),
 
-    partClasses,
+    variantPartClasses,
     ...variantColorsMediaOrClass(options),
     ...variantLanguageDirections,
     variantScope,
+    ...variantChildren,
 
     variantContainerQuery,
     variantVariables,
+    ...variantTaggedDataAttributes,
+    ...variantTaggedAriaAttributes,
+
+    variantTheme,
   ]
 }

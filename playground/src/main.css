@@ -27,7 +27,7 @@
 .splitpanes__splitter:before {
   content: '';
   transition: opacity 0.4s;
-  background-color: rgba(125,125,125,0.1);
+  background-color: rgb(125 125 125 / 0.1);
   @apply absolute z-1 top-0 left-0 op-0;
 }
 
@@ -110,4 +110,22 @@
 li.CodeMirror-hint-active {
   background: #489371 !important;
   color: white !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2147483646;
+}
+.dark::view-transition-old(root) {
+  z-index: 2147483646;
+}
+.dark::view-transition-new(root) {
+  z-index: 1;
 }

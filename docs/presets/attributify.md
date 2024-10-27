@@ -24,8 +24,7 @@ This enables the [attributify mode](#attributify-mode) for other presets.
   ```
 :::
 
-```ts
-// uno.config.ts
+```ts [uno.config.ts]
 import presetAttributify from '@unocss/preset-attributify'
 
 export default defineConfig({
@@ -46,7 +45,7 @@ import { presetAttributify } from 'unocss'
 
 ## Attributify Mode
 
-Imagine you have this button using Tailwind’s utilities. When the list gets longer, it becomes really hard to read and maintain.
+Imagine you have this button using Tailwind CSS's utilities. When the list gets longer, it becomes really hard to read and maintain.
 
 ```html
 <button class="bg-blue-400 hover:bg-blue-500 text-sm text-white font-mono font-light py-2 px-4 rounded border-2 border-blue-200 dark:bg-blue-500 dark:hover:bg-blue-600">
@@ -57,7 +56,7 @@ Imagine you have this button using Tailwind’s utilities. When the list gets lo
 With attributify mode, you can separate utilities into attributes:
 
 ```html
-<button 
+<button
   bg="blue-400 hover:blue-500 dark:blue-500 dark:hover:blue-600"
   text="sm white"
   font="mono light"
@@ -92,7 +91,7 @@ Can be written as:
 
 ## Valueless attributify
 
-In addition to Windi CSS’s attributify mode, this presets also supports valueless attributes.
+In addition to Windi CSS's attributify mode, this preset also supports valueless attributes.
 
 For example,
 
@@ -107,12 +106,12 @@ now can be
 ```
 
 ::: info
-Note: If you are using JSX, `<div foo>` might be transformed to `<div foo={true}>` which will make the generate CSS from UnoCSS failed to match the attributes. To solve this, you might want to try [`transformer-attributify-jsx`](https://github.com/unocss/unocss/tree/main/packages/transformer-attributify-jsx) along with this preset.
+Note: If you are using JSX, `<div foo>` might be transformed to `<div foo={true}>` which will make the generated CSS from UnoCSS fail to match the attributes. To solve this, you might want to try [`transformer-attributify-jsx`](/transformers/attributify-jsx) along with this preset.
 :::
 
 ## Properties conflicts
 
-If the name of the attributes mode ever conflicts with the elements’ or components’ properties, you can add `un-` prefix to be specific to UnoCSS’s attributify mode.
+If the name of the attributes mode ever conflicts with the elements' or components' properties, you can add `un-` prefix to be specific to UnoCSS's attributify mode.
 
 For example:
 
@@ -152,8 +151,7 @@ Create `shims.d.ts` with the following content:
 
 Since Volar 0.36, [it's now strict to unknown attributes](https://github.com/johnsoncodehk/volar/issues/1077#issuecomment-1145361472). To opt-out, you can add the following file to your project:
 
-```ts
-// html.d.ts
+```ts [html.d.ts]
 declare module '@vue/runtime-dom' {
   interface HTMLAttributes {
     [key: string]: any

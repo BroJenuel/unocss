@@ -1,5 +1,5 @@
-import type { Preset } from '@unocss/core'
 import type { TagifyOptions } from './types'
+import { definePreset } from '@unocss/core'
 import { extractorTagify } from './extractor'
 import { variantTagify } from './variant'
 
@@ -7,7 +7,10 @@ export * from './extractor'
 export * from './types'
 export * from './variant'
 
-function tagifyPreset(options: TagifyOptions = {}): Preset {
+/**
+ * @see https://unocss.dev/presets/tagify
+ */
+export const presetTagify = definePreset((options: TagifyOptions = {}) => {
   const {
     defaultExtractor = true,
   } = options
@@ -27,6 +30,6 @@ function tagifyPreset(options: TagifyOptions = {}): Preset {
       ? undefined
       : false,
   }
-}
+})
 
-export default tagifyPreset
+export default presetTagify

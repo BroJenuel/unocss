@@ -1,6 +1,7 @@
-/* eslint-disable no-console */
-import { performance } from 'perf_hooks'
-import { join } from 'path'
+/* eslint-disable no-console, antfu/no-top-level-await */
+import { join } from 'node:path'
+import { performance } from 'node:perf_hooks'
+import process from 'node:process'
 import fs from 'fs-extra'
 import { build } from 'vite'
 import { dir, targets } from './meta.mjs'

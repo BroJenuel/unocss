@@ -1,11 +1,11 @@
+import { createGenerator, type ExtractorContext } from '@unocss/core'
 import presetIcons from '@unocss/preset-icons'
-import { type ExtractorContext, createGenerator } from '@unocss/core'
-import { describe, expect, test } from 'vitest'
-import presetTagify, { extractorTagify } from '@unocss/preset-tagify'
 import presetMini from '@unocss/preset-mini'
+import presetTagify, { extractorTagify } from '@unocss/preset-tagify'
+import { describe, expect, it } from 'vitest'
 
 describe('tagify', () => {
-  test('extractor', async () => {
+  it('extractor', async () => {
     const extractor = extractorTagify({})
 
     const code = `
@@ -16,15 +16,15 @@ describe('tagify', () => {
     `
 
     expect(extractor.extract!({ code } as ExtractorContext)).toMatchInlineSnapshot(`
-      Set {
+      [
         "__TAGIFY__foo",
         "__TAGIFY__bar",
         "__TAGIFY__baz",
-      }
+      ]
     `)
   })
 
-  test('preset', async () => {
+  it('preset', async () => {
     const uno = createGenerator({
       shortcuts: [
         ['btn', 'px-4 py-1 rounded inline-block bg-teal-600 text-white cursor-pointer hover:bg-teal-700 disabled:cursor-default disabled:bg-gray-600 disabled:opacity-50'],
@@ -52,22 +52,22 @@ describe('tagify', () => {
 
     expect((await uno.generate(code, { preflights: false })).css).toMatchInlineSnapshot(`
       "/* layer: shortcuts */
-      btn{padding-left:1rem;padding-right:1rem;padding-top:0.25rem;padding-bottom:0.25rem;display:inline-block;--un-bg-opacity:1;background-color:rgba(13,148,136,var(--un-bg-opacity));border-radius:0.25rem;--un-text-opacity:1;color:rgba(255,255,255,var(--un-text-opacity));cursor:pointer;}
-      btn:disabled{opacity:0.5;--un-bg-opacity:1;background-color:rgba(75,85,99,var(--un-bg-opacity));cursor:default;}
-      btn:hover{--un-bg-opacity:1;background-color:rgba(15,118,110,var(--un-bg-opacity));}
+      btn{display:inline-block;cursor:pointer;border-radius:0.25rem;--un-bg-opacity:1;background-color:rgb(13 148 136 / var(--un-bg-opacity));padding-left:1rem;padding-right:1rem;padding-top:0.25rem;padding-bottom:0.25rem;--un-text-opacity:1;color:rgb(255 255 255 / var(--un-text-opacity));}
+      btn:disabled{cursor:default;--un-bg-opacity:1;background-color:rgb(75 85 99 / var(--un-bg-opacity));opacity:0.5;}
+      btn:hover{--un-bg-opacity:1;background-color:rgb(15 118 110 / var(--un-bg-opacity));}
       /* layer: default */
-      .p2{padding:0.5rem;}
       m-1{margin:0.25rem;}
-      hover\\\\:color-red:hover,
-      text-red{--un-text-opacity:1;color:rgba(248,113,113,var(--un-text-opacity));}
-      text-green5\\\\:10{color:rgba(34,197,94,0.1);}
-      flex{display:flex;}
       .h2{height:0.5rem;}
+      flex{display:flex;}
+      .p2{padding:0.5rem;}
+      text-green5\\:10{color:rgb(34 197 94 / 0.1);}
+      text-red{--un-text-opacity:1;color:rgb(248 113 113 / var(--un-text-opacity));}
+      hover\\:color-red:hover{--un-text-opacity:1;color:rgb(248 113 113 / var(--un-text-opacity));}
       custom-rule{background-color:pink;}"
     `)
   })
 
-  test('exclude tags', async () => {
+  it('exclude tags', async () => {
     const uno = createGenerator({
       presets: [
         presetMini(),
@@ -89,12 +89,12 @@ describe('tagify', () => {
 
     expect((await uno.generate(code, { preflights: false })).css).toMatchInlineSnapshot(`
       "/* layer: default */
-      b{border-width:1px;}
-      h6{height:1.5rem;}"
+      h6{height:1.5rem;}
+      b{border-width:1px;}"
     `)
   })
 
-  test('extraProperties', async () => {
+  it('extraProperties', async () => {
     const uno = createGenerator({
       presets: [
         presetIcons(),
@@ -112,7 +112,7 @@ describe('tagify', () => {
     expect((await uno.generate(code, { preflights: false })).css).toContain('display:inline-block')
   })
 
-  test('prefix', async () => {
+  it('prefix', async () => {
     const uno = createGenerator({
       presets: [
         presetMini(),

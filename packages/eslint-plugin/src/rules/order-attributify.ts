@@ -1,23 +1,18 @@
-import { join } from 'node:path'
-import { ESLintUtils } from '@typescript-eslint/utils'
-import { createSyncFn } from 'synckit'
-import type { RuleListener } from '@typescript-eslint/utils/dist/ts-eslint'
 import type { TSESTree } from '@typescript-eslint/types'
+import type { ESLintUtils } from '@typescript-eslint/utils'
+import type { RuleListener } from '@typescript-eslint/utils/ts-eslint'
 import MagicString from 'magic-string'
-import { distDir } from '../dirs'
+import { createRule, syncAction } from './_'
 
-const sortClasses = createSyncFn<(classes: string) => Promise<string>>(join(distDir, 'worker-sort.cjs'))
+export const IGNORE_ATTRIBUTES = ['style', 'class', 'classname', 'value']
 
-const INGORE_ATTRIBUTES = ['style', 'class', 'classname', 'value']
-
-export default ESLintUtils.RuleCreator(name => name)({
+export default createRule({
   name: 'order-attributify',
   meta: {
     type: 'layout',
     fixable: 'code',
     docs: {
       description: 'Order of UnoCSS attributes',
-      recommended: false,
     },
     messages: {
       'invalid-order': 'UnoCSS attributes are not ordered',
@@ -31,12 +26,16 @@ export default ESLintUtils.RuleCreator(name => name)({
 
     const templateBodyVisitor: RuleListener = {
       VStartTag(node: any) {
-        const valueless = node.attributes.filter((i: any) => typeof i.key?.name === 'string' && !INGORE_ATTRIBUTES.includes(i.key?.name?.toLowerCase()) && i.value == null)
+        const valueless = node.attributes.filter((i: any) => typeof i.key?.name === 'string' && !IGNORE_ATTRIBUTES.includes(i.key?.name?.toLowerCase()) && i.value == null)
         if (!valueless.length)
           return
 
         const input = valueless.map((i: any) => i.key.name).join(' ').trim()
-        const sorted = sortClasses(input)
+        const sorted = syncAction(
+          context.settings.unocss?.configPath,
+          'sort',
+          input,
+        )
         if (sorted !== input) {
           context.report({
             node,
@@ -64,14 +63,15 @@ export default ESLintUtils.RuleCreator(name => name)({
       },
     }
 
-    // @ts-expect-error missing-types
-    if (context.parserServices == null || context.parserServices.defineTemplateBodyVisitor == null) {
+    const parserServices = context?.sourceCode.parserServices || context.parserServices
+    // @ts-expect-error missing types
+    if (parserServices == null || parserServices.defineTemplateBodyVisitor == null) {
       return scriptVisitor
     }
     else {
       // For Vue
-      // @ts-expect-error missing-types
-      return context.parserServices?.defineTemplateBodyVisitor(templateBodyVisitor, scriptVisitor)
+      // @ts-expect-error missing types
+      return parserServices?.defineTemplateBodyVisitor(templateBodyVisitor, scriptVisitor)
     }
   },
-})
+}) as any as ESLintUtils.RuleWithMeta<[], ''>

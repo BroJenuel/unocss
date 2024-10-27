@@ -1,5 +1,7 @@
 # Quasar App (quasar)
 
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/fork/github/unocss/unocss/tree/main/examples/quasar)
+
 A Quasar Project
 
 ## Install the dependencies
@@ -14,15 +16,12 @@ npm install
 quasar dev
 ```
 
-
 ### Lint the files
 ```bash
 yarn lint
 # or
 npm run lint
 ```
-
-
 
 ### Build the app for production
 ```bash

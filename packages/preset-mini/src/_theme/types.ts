@@ -1,4 +1,4 @@
-import type { Arrayable } from '@unocss/core'
+import type { Arrayable, CSSObject } from '@unocss/core'
 
 export interface ThemeAnimation {
   keyframes?: Record<string, string>
@@ -29,8 +29,14 @@ export interface Theme {
   breakpoints?: Record<string, string>
   verticalBreakpoints?: Record<string, string>
   colors?: Colors
+  borderColor?: Colors
+  backgroundColor?: Colors
+  textColor?: Colors
+  shadowColor?: Colors
+  accentColor?: Colors
   fontFamily?: Record<string, string>
-  fontSize?: Record<string, string | [string, string]>
+  fontSize?: Record<string, string | [string, string | CSSObject] | [string, string, string]>
+  fontWeight?: Record<string, string>
   lineHeight?: Record<string, string>
   letterSpacing?: Record<string, string>
   wordSpacing?: Record<string, string>
@@ -44,11 +50,13 @@ export interface Theme {
   duration?: Record<string, string>
   aria?: Record<string, string>
   data?: Record<string, string>
+  zIndex?: Record<string, string>
   // filters
   blur?: Record<string, string>
   dropShadow?: Record<string, string | string[]>
   // transitions
   easing?: Record<string, string>
+  transitionProperty?: Record<string, string>
   // media queries
   media?: Record<string, string>
   // supports queries
@@ -71,7 +79,7 @@ export interface Theme {
     maxWidth?: Record<string, string>
   }
   // vars
-  /** Used to generate CSS variables placeholder in preflight */
+  /** Used to generate CSS custom properties placeholder in preflight */
   preflightRoot?: Arrayable<string>
   preflightBase?: Record<string, string | number>
 }

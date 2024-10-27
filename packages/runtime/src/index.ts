@@ -1,10 +1,31 @@
 import type { GenerateResult, UnoGenerator, UserConfig, UserConfigDefaults } from '@unocss/core'
+import type { Theme } from '@unocss/preset-uno'
 import { createGenerator, isString, toArray } from '@unocss/core'
 import { autoPrefixer, decodeHtml } from './utils'
 
+/**
+ * Define UnoCSS config
+ */
+export function defineConfig<T extends object = Theme>(config: UserConfig<T>) {
+  return config
+}
+
 export interface RuntimeGenerateResult extends GenerateResult {
-  getStyleElement(name: string): HTMLStyleElement | undefined
-  getStyleElements(): Map<string, HTMLStyleElement>
+  getStyleElement: (name: string) => HTMLStyleElement | undefined
+  getStyleElements: () => Map<string, HTMLStyleElement>
+}
+
+export interface RuntimeObserverConfig {
+  /**
+   * A function that returns an HTML Element for the MutationObserver to watch.
+   * Defaults to the same as rootElement
+   */
+  target?: () => Element
+  /**
+   * An array of attribute names for the MutationObserver to limit which attributes
+   * are watched for mutations.
+   */
+  attributeFilter?: Array<string>
 }
 
 export interface RuntimeOptions {
@@ -27,14 +48,27 @@ export interface RuntimeOptions {
    */
   configResolved?: (config: UserConfig, defaults: UserConfigDefaults) => void
   /**
+   * Optional function to control UnoCSS style element(s) injection into DOM.
+   * When provided, the default injection logic will be overridden.
+   */
+  inject?: (styleElement: HTMLStyleElement) => void
+  /**
    * Callback when the runtime is ready. Returning false will prevent default extraction
    */
   ready?: (runtime: RuntimeContext) => false | any
+  /**
+   * Runtime MutationObserver configuration options
+   */
+  observer?: RuntimeObserverConfig
   /**
    * When enabled, UnoCSS will look for the existing selectors defined in the stylesheet and bypass them.
    * This is useful when using the runtime alongwith the build-time UnoCSS.
    */
   bypassDefined?: boolean
+  /**
+   * Optional function to control the root element to extract.
+   */
+  rootElement?: () => Element | undefined
 }
 
 export type RuntimeInspectorCallback = (element: Element) => boolean
@@ -59,7 +93,7 @@ export interface RuntimeContext {
    *
    * @returns {Promise<void>}
    */
-  extractAll: () => Promise<void>
+  extractAll: (target?: Element) => Promise<void>
 
   /**
    * Set/unset inspection callback to allow/ignore element to be extracted.
@@ -85,6 +119,14 @@ export interface RuntimeContext {
    * @returns {RuntimeGenerateResult}
    */
   update: () => Promise<RuntimeGenerateResult>
+
+  /**
+   * Loaded presets
+   *
+   * @type {Record<string, Function>}
+   */
+  // eslint-disable-next-line ts/no-unsafe-function-type
+  presets: Record<string, Function>
 
   /**
    * The UnoCSS version.
@@ -122,14 +164,16 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
 
   runtimeOptions.configResolved?.(userConfig, userConfigDefaults)
   const uno = createGenerator(userConfig, userConfigDefaults)
+  const inject = (styleElement: HTMLStyleElement) => runtimeOptions.inject ? runtimeOptions.inject(styleElement) : html().prepend(styleElement)
+  const rootElement = () => runtimeOptions.rootElement ? runtimeOptions.rootElement() : defaultDocument.body
   const styleElements = new Map<string, HTMLStyleElement>()
 
   let paused = true
-  let tokens = new Set<string>()
+  const tokens = new Set<string>()
   let inspector: RuntimeInspectorCallback | undefined
 
   let _timer: number | undefined
-  let _resolvers: Function[] = []
+  let _resolvers: ((arg?: any) => any)[] = []
   const scheduleUpdate = () => new Promise((resolve) => {
     _resolvers.push(resolve)
     if (_timer != null)
@@ -141,15 +185,17 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
     }), 0) as any
   })
 
-  function removeCloak(node: Node) {
+  function removeCloak(node: Node, isAll = false) {
     if (node.nodeType !== 1)
       return
     const el = node as Element
     if (el.hasAttribute(cloakAttribute))
       el.removeAttribute(cloakAttribute)
-    el.querySelectorAll(`[${cloakAttribute}]`).forEach((n) => {
-      n.removeAttribute(cloakAttribute)
-    })
+    if (isAll) {
+      el.querySelectorAll(`[${cloakAttribute}]`).forEach((n) => {
+        n.removeAttribute(cloakAttribute)
+      })
+    }
   }
 
   function getStyleElement(layer: string, previousLayer?: string) {
@@ -161,7 +207,7 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
       styleElements.set(layer, styleElement)
 
       if (previousLayer == null) {
-        html().prepend(styleElement)
+        inject(styleElement)
       }
       else {
         const previousStyle = getStyleElement(previousLayer)
@@ -169,7 +215,7 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
         if (parentNode)
           parentNode.insertBefore(styleElement, previousStyle.nextSibling)
         else
-          html().prepend(styleElement)
+          inject(styleElement)
       }
     }
 
@@ -177,14 +223,17 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
   }
 
   async function updateStyle() {
-    const result = await uno.generate(tokens)
+    const currentToken = [...tokens]
+    const result = await uno.generate(currentToken)
 
     result.layers.reduce((previous: string | undefined, current) => {
       getStyleElement(current, previous).innerHTML = result.getLayer(current) ?? ''
       return current
     }, undefined)
 
-    tokens = result.matched
+    const clearTokens = currentToken.filter(i => !result.matched.has(i))
+    clearTokens.forEach(t => tokens.delete(t))
+
     return {
       ...result,
       getStyleElement: (layer: string) => styleElements.get(layer),
@@ -199,13 +248,12 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
       await scheduleUpdate()
   }
 
-  async function extractAll() {
-    const body = defaultDocument.body
-    const outerHTML = body && body.outerHTML
+  async function extractAll(target = rootElement()) {
+    const outerHTML = target && target.outerHTML
     if (outerHTML) {
       await extract(`${outerHTML} ${decodeHtml(outerHTML)}`)
       removeCloak(html())
-      removeCloak(body)
+      removeCloak(target, true)
     }
   }
 
@@ -241,8 +289,7 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
           const tag = `<${target.tagName.toLowerCase()} ${attrs}>`
           await extract(tag)
         }
-        if (target.hasAttribute(cloakAttribute))
-          target.removeAttribute(cloakAttribute)
+        removeCloak(target)
       }
     })
   })
@@ -251,13 +298,14 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
   function observe() {
     if (observing)
       return
-    const target = html() || defaultDocument.body
+    const target = runtimeOptions.observer?.target ? runtimeOptions.observer.target() : rootElement()
     if (!target)
       return
     mutationObserver.observe(target, {
       childList: true,
       subtree: true,
       attributes: true,
+      attributeFilter: runtimeOptions.observer?.attributeFilter,
     })
     observing = true
   }
@@ -299,6 +347,7 @@ export default function init(inlineConfig: RuntimeOptions = {}) {
         ready()
     },
     update: updateStyle,
+    presets: defaultWindow.__unocss_runtime?.presets ?? {},
   }
 
   if (runtimeOptions.ready?.(unoCssRuntime) !== false) {
@@ -332,7 +381,7 @@ function getDefinedCssSelectors(selectors = new Set<string>()) {
           selectors.add(s)
         })
     }
-    catch (e) {
+    catch {
       continue
     }
   }

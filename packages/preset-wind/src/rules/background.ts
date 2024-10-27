@@ -1,12 +1,14 @@
-import type { CSSColorValue, Rule, RuleContext } from '@unocss/core'
-import { colorOpacityToString, colorToString, globalKeywords, handler as h, makeGlobalStaticRules, parseColor, positionMap } from '@unocss/preset-mini/utils'
+import type { Rule, RuleContext } from '@unocss/core'
 import type { Theme } from '@unocss/preset-mini'
+import type { CSSColorValue } from '@unocss/rule-utils'
+import { globalKeywords, h, makeGlobalStaticRules, parseColor, positionMap } from '@unocss/preset-mini/utils'
+import { colorOpacityToString, colorToString } from '@unocss/rule-utils'
 
 function bgGradientToValue(cssColor: CSSColorValue | undefined) {
   if (cssColor)
     return colorToString(cssColor, 0)
 
-  return 'rgba(255,255,255,0)'
+  return 'rgb(255 255 255 / 0)'
 }
 
 function bgGradientColorValue(mode: string, cssColor: CSSColorValue | undefined, color: string, alpha: any) {
@@ -22,7 +24,7 @@ function bgGradientColorValue(mode: string, cssColor: CSSColorValue | undefined,
 
 function bgGradientColorResolver() {
   return ([, mode, body]: string[], { theme }: RuleContext<Theme>) => {
-    const data = parseColor(body, theme)
+    const data = parseColor(body, theme, 'backgroundColor')
 
     if (!data)
       return
@@ -66,19 +68,7 @@ function bgGradientPositionResolver() {
   }
 }
 
-const bgUrlRE = /^\[url\(.+\)\]$/
-const bgLengthRE = /^\[length:.+\]$/
-const bgPositionRE = /^\[position:.+\]$/
 export const backgroundStyles: Rule[] = [
-  [/^bg-(.+)$/, ([, d]) => {
-    if (bgUrlRE.test(d))
-      return { '--un-url': h.bracket(d), 'background-image': 'var(--un-url)' }
-    if (bgLengthRE.test(d) && h.bracketOfLength(d) != null)
-      return { 'background-size': h.bracketOfLength(d)!.split(' ').map(e => h.fraction.auto.px.cssvar(e) ?? e).join(' ') }
-    if (bgPositionRE.test(d) && h.bracketOfPosition(d) != null)
-      return { 'background-position': h.bracketOfPosition(d)!.split(' ').map(e => h.position.fraction.auto.px.cssvar(e) ?? e).join(' ') }
-  }],
-
   // gradients
   [/^bg-gradient-(.+)$/, ([, d]) => ({ '--un-gradient': h.bracket(d) }), {
     autocomplete: ['bg-gradient', 'bg-gradient-(from|to|via)', 'bg-gradient-(from|to|via)-$colors', 'bg-gradient-(from|to|via)-(op|opacity)', 'bg-gradient-(from|to|via)-(op|opacity)-<percent>'],
@@ -88,16 +78,16 @@ export const backgroundStyles: Rule[] = [
   [/^(?:bg-gradient-)?(via)-(.+)$/, bgGradientColorResolver()],
   [/^(?:bg-gradient-)?(to)-(.+)$/, bgGradientColorResolver()],
   [/^(?:bg-gradient-)?(from|via|to)-op(?:acity)?-?(.+)$/, ([, position, opacity]) => ({ [`--un-${position}-opacity`]: h.bracket.percent(opacity) })],
-  [/^(from|via|to)-([\d\.]+)%$/, bgGradientPositionResolver()],
+  [/^(from|via|to)-([\d.]+)%$/, bgGradientPositionResolver()],
   // images
   [/^bg-gradient-((?:repeating-)?(?:linear|radial|conic))$/, ([, s]) => ({
-    'background-image': `${s}-gradient(var(--un-gradient, var(--un-gradient-stops, rgba(255, 255, 255, 0))))`,
+    'background-image': `${s}-gradient(var(--un-gradient, var(--un-gradient-stops, rgb(255 255 255 / 0))))`,
   }), { autocomplete: ['bg-gradient-repeating', 'bg-gradient-(linear|radial|conic)', 'bg-gradient-repeating-(linear|radial|conic)'] }],
   // ignore any center position
   [/^bg-gradient-to-([rltb]{1,2})$/, ([, d]) => {
     if (d in positionMap) {
       return {
-        '--un-gradient-shape': `to ${positionMap[d]}`,
+        '--un-gradient-shape': `to ${positionMap[d]} in oklch`,
         '--un-gradient': 'var(--un-gradient-shape), var(--un-gradient-stops)',
         'background-image': 'linear-gradient(var(--un-gradient))',
       }
@@ -107,7 +97,7 @@ export const backgroundStyles: Rule[] = [
     const v = d in positionMap ? `to ${positionMap[d]}` : h.bracket(d)
     if (v != null) {
       return {
-        '--un-gradient-shape': v,
+        '--un-gradient-shape': `${v} in oklch`,
         '--un-gradient': 'var(--un-gradient-shape), var(--un-gradient-stops)',
       }
     }

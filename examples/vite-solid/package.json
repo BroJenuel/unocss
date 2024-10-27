@@ -1,5 +1,6 @@
 {
   "name": "vite-template-solid",
+  "type": "module",
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
@@ -8,16 +9,20 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "solid-js": "^1.7.4"
+    "solid-js": "^1.9.1"
   },
   "devDependencies": {
-    "@iconify-json/logos": "^1.1.25",
+    "@iconify-json/logos": "^1.2.1",
     "@unocss/core": "link:../../packages/core",
     "@unocss/preset-attributify": "link:../../packages/preset-attributify",
     "@unocss/preset-icons": "link:../../packages/preset-icons",
-    "typescript": "^5.0.4",
+    "typescript": "^5.6.2",
     "unocss": "link:../../packages/unocss",
-    "vite": "^4.3.5",
-    "vite-plugin-solid": "^2.7.0"
+    "vite": "^5.4.8",
+    "vite-plugin-solid": "^2.10.2"
+  },
+  "stackblitz": {
+    "installDependencies": false,
+    "startCommand": "node .stackblitz.mjs && npm install && npm run dev"
   }
 }

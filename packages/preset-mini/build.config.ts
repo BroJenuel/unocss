@@ -1,3 +1,4 @@
+import { isWindows } from 'std-env'
 import { defineBuildConfig } from 'unbuild'
 
 export default defineBuildConfig({
@@ -12,6 +13,9 @@ export default defineBuildConfig({
   clean: true,
   declaration: true,
   rollup: {
-    emitCJS: true,
+    dts: {
+      respectExternal: false,
+    },
   },
+  failOnWarn: !isWindows,
 })

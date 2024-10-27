@@ -1,20 +1,21 @@
-import { describe, expect, it } from 'vitest'
-import { preprocess } from 'svelte/compiler'
-import { format as prettier } from 'prettier'
+import type { UnocssSveltePreprocessOptions } from '../src/preprocess'
+import presetIcons from '@unocss/preset-icons'
+import presetTypography from '@unocss/preset-typography'
+import presetUno from '@unocss/preset-uno'
 
+import fs from 'fs-extra'
+import { format as prettier } from 'prettier'
+import { preprocess } from 'svelte/compiler'
+import { describe, expect, it } from 'vitest'
 // @ts-expect-error missing types
 import prettierSvelte from 'prettier-plugin-svelte'
-import presetUno from '@unocss/preset-uno'
-import presetIcons from '@unocss/preset-icons'
+import { GLOBAL_STYLES_PLACEHOLDER } from '../src/_vite/constants'
+import { replaceGlobalStylesPlaceholder } from '../src/_vite/global'
 import UnocssSveltePreprocess from '../src/preprocess'
-import type { UnocssSveltePreprocessOptions } from '../src/preprocess/types'
 
 const defaultOptions: UnocssSveltePreprocessOptions = {
   configOrPath: {
-    // shortcuts: [
-    //   { logo: 'i-logos:svelte-icon w-7em h-7em transform transition-300' },
-    // ],
-    safelist: ['mb-7px'],
+    safelist: ['mb-7px', 'uno-prose'],
     presets: [
       presetUno(),
       presetIcons({
@@ -23,6 +24,9 @@ const defaultOptions: UnocssSveltePreprocessOptions = {
           'display': 'inline-block',
           'vertical-align': 'middle',
         },
+      }),
+      presetTypography({
+        selectorName: 'uno-prose',
       }),
     ],
   },
@@ -47,4 +51,17 @@ describe('svelte-preprocessor', () => {
       expect(prod).toMatchFileSnapshot(path.replace('Input.svelte', 'OutputProd.svelte'))
     })
   }
+})
+
+describe('svelte-scoped helpers', () => {
+  it('escape template literal characters in placeholder replacement', async () => {
+    const css = await fs.readFile('packages/svelte-scoped/test/fixtures/escaped-unicode.css', 'utf8')
+
+    const escaped = replaceGlobalStylesPlaceholder(
+      `'${GLOBAL_STYLES_PLACEHOLDER}'`
+      , `<style type="text/css">${css}</style>`,
+    )
+
+    expect(escaped).toContain('"\\\\200B"')
+  })
 })

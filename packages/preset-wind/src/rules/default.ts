@@ -1,25 +1,27 @@
 import type { Rule } from '@unocss/core'
+import type { Theme } from '@unocss/preset-mini'
 import * as _ from '@unocss/preset-mini/rules'
-import { container } from './container'
-import { backgroundStyles } from './background'
-import { filters } from './filters'
-import { spaces } from './spacing'
-import { backgroundBlendModes, hyphens, isolations, mixBlendModes, objectPositions, screenReadersAccess, textTransforms, writingModes, writingOrientations } from './static'
-import { tables } from './table'
-import { accents, carets, imageRenderings, listStyle, overscrolls, scrollBehaviors } from './behaviors'
 import { animations } from './animation'
-import { cssVariables } from './variables'
-import { divides } from './divide'
-import { lineClamps } from './line-clamp'
-import { fontVariantNumeric } from './typography'
-import { touchActions } from './touch-actions'
-import { scrolls } from './scrolls'
+import { backgroundStyles } from './background'
+import { accents, carets, imageRenderings, listStyle, overscrolls, scrollBehaviors } from './behaviors'
 import { columns } from './columns'
+import { container } from './container'
+import { divides } from './divide'
+import { filters } from './filters'
+import { lineClamps } from './line-clamp'
 import { placeholders } from './placeholder'
+import { scrolls } from './scrolls'
+import { spaces } from './spacing'
+import { backgroundBlendModes, dynamicViewportHeight, hyphens, isolations, mixBlendModes, objectPositions, screenReadersAccess, textTransforms, writingModes, writingOrientations } from './static'
+import { tables } from './table'
+import { touchActions } from './touch-actions'
+import { fontVariantNumeric } from './typography'
+import { cssVariables } from './variables'
+import { viewTransition } from './view-transition'
 
 // _. indicates that the rule is from @unocss/preset-mini
 
-export const rules: Rule[] = [
+export const rules: Rule<Theme>[] = [
   _.cssVariables,
   cssVariables,
   _.cssProperty,
@@ -69,18 +71,19 @@ export const rules: Rule[] = [
   _.borders,
   _.bgColors,
   backgroundStyles,
+  _.colorScheme,
   _.svgUtilities,
   objectPositions,
   _.paddings,
   _.textAligns,
   _.textIndents,
+  _.textWraps,
   _.verticalAligns,
   _.fonts,
   _.textTransforms,
   textTransforms,
   _.fontStyles,
   fontVariantNumeric,
-  _.textColors,
   _.textDecorations,
   _.fontSmoothings,
   _.tabSizes,
@@ -105,6 +108,8 @@ export const rules: Rule[] = [
   _.contents,
   placeholders,
   _.containerParent,
+  viewTransition,
+  dynamicViewportHeight,
 
   // should be the last
   _.questionMark,

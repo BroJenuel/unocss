@@ -5,12 +5,12 @@ export function sampleArray<T>(arr: T[], count: number) {
 export function extractColors(css: string) {
   return Array.from(css.matchAll(/\brgba?\((.+?)\)/g))
     .map((i) => {
-      const [r, g, b, a] = i[1].split(',').map(i => parseInt(i.trim()))
+      const [r, g, b, a] = i[1].split(/,\s*|\s+/).map(i => Number.parseInt(i.trim()))
       if (Number.isNaN(r))
         return ''
       if (!Number.isNaN(a))
-        return `rgba(${r}, ${g}, ${b}, ${a})`
-      return `rgb(${r}, ${g}, ${b})`
+        return `rgb(${r} ${g} ${b} / ${a})`
+      return `rgb(${r} ${g} ${b})`
     })
     .filter(Boolean)
 }
@@ -28,7 +28,7 @@ export async function formatCSS(input: string) {
     {
       parser: 'css',
       plugins: [prettierParserCSS],
-      printWidth: Infinity,
+      printWidth: Number.POSITIVE_INFINITY,
     },
   )
 }

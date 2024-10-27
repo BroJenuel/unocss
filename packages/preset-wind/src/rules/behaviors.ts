@@ -1,5 +1,5 @@
 import type { Rule } from '@unocss/core'
-import { colorResolver, handler as h, makeGlobalStaticRules } from '@unocss/preset-mini/utils'
+import { colorResolver, h, makeGlobalStaticRules } from '@unocss/preset-mini/utils'
 
 const listStyles: Record<string, string> = {
   'disc': 'disc',
@@ -44,12 +44,12 @@ export const listStyle: Rule[] = [
 ]
 
 export const accents: Rule[] = [
-  [/^accent-(.+)$/, colorResolver('accent-color', 'accent'), { autocomplete: 'accent-$colors' }],
+  [/^accent-(.+)$/, colorResolver('accent-color', 'accent', 'accentColor'), { autocomplete: 'accent-$colors' }],
   [/^accent-op(?:acity)?-?(.+)$/, ([, d]) => ({ '--un-accent-opacity': h.bracket.percent(d) }), { autocomplete: ['accent-(op|opacity)', 'accent-(op|opacity)-<percent>'] }],
 ]
 
 export const carets: Rule[] = [
-  [/^caret-(.+)$/, colorResolver('caret-color', 'caret'), { autocomplete: 'caret-$colors' }],
+  [/^caret-(.+)$/, colorResolver('caret-color', 'caret', 'textColor'), { autocomplete: 'caret-$colors' }],
   [/^caret-op(?:acity)?-?(.+)$/, ([, d]) => ({ '--un-caret-opacity': h.bracket.percent(d) }), { autocomplete: ['caret-(op|opacity)', 'caret-(op|opacity)-<percent>'] }],
 ]
 

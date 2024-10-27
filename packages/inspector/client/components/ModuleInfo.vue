@@ -2,8 +2,8 @@
 import attributifyPreset from '@unocss/preset-attributify'
 import { Pane, Splitpanes } from 'splitpanes'
 import { fetchModule } from '../composables/fetch'
-import { useScrollStyle } from '../composables/useScrollStyle'
 import { useCSSPrettify } from '../composables/usePrettify'
+import { useScrollStyle } from '../composables/useScrollStyle'
 
 const props = defineProps<{ id: string }>()
 const { data: mod } = fetchModule(toRef(props, 'id'))
@@ -27,57 +27,56 @@ const unmatchedClasses = asyncComputed(async () => {
   }
   return Array.from(set)
     .filter(i => !i.startsWith('['))
-    .filter(i => !mod.value?.matched.includes(i))
+    .filter(i => !mod.value?.matched?.some(({ rawSelector }) => rawSelector === i))
 })
 
 const isPrettify = ref(false)
+const active = ref('source')
 const formatted = useCSSPrettify(computed(() => mod.value?.css), isPrettify)
 </script>
 
 <template>
-  <div v-if="mod" h-full of-hidden>
-    <StatusBar ref="status" grid="~ cols-3 gap-4">
-      <div>
-        <div op50>
-          Module
+  <div v-if="mod" h-full of-hidden flex flex-col>
+    <StatusBar ref="status" p0>
+      <div p="4" grid="~ cols-4 gap-4">
+        <div>
+          <div op50>
+            Module
+          </div>
+          <a cursor-pointer op80 hover:op100 @click="openEditor">
+            <ModuleId :id="mod.id" mr-1 />
+            <div i-carbon-launch />
+          </a>
         </div>
-        <a cursor-pointer op80 hover:op100 @click="openEditor">
-          <ModuleId :id="mod.id" mr-1 />
-          <div i-carbon-launch />
-        </a>
-      </div>
-      <div>
-        <div op50>
-          Matched Rules
+        <div>
+          <div op50>
+            Matched Rules
+          </div>
+          {{ mod.matched.length }}
         </div>
-        {{ mod.matched.length }}
-      </div>
-      <div>
-        <div op50>
-          CSS Size
+        <div>
+          <div op50>
+            CSS Size
+          </div>
+          {{ ((mod?.gzipSize || 0) / 1024).toFixed(2) }} KiB <span op50>gzipped</span>
         </div>
-        {{ ((mod?.gzipSize || 0) / 1024).toFixed(2) }} KiB <span op50>gzipped</span>
-      </div>
-      <div v-if="unmatchedClasses.length" row-span-3>
-        <div op50>
-          Potentially Unmatched
+        <div v-if="unmatchedClasses.length" row-span-3>
+          <div op50>
+            Potentially Unmatched
+          </div>
+          <code>
+            {{ unmatchedClasses.join(', ') }}
+          </code>
         </div>
-        <code>
-          {{ unmatchedClasses.join(', ') }}
-        </code>
       </div>
+      <OverviewTabs v-model="active" />
     </StatusBar>
-    <div h-full of-hidden>
+    <div v-if="active === 'source'" h-full of-hidden>
       <Splitpanes>
         <Pane size="50">
           <CodeMirror
-            h-full
-            :model-value="mod.code"
-            :read-only="true"
-            :mode="mode"
-            :matched="mod.matched"
-            class="scrolls module-scrolls"
-            :style="style"
+            h-full :model-value="mod.code" :read-only="true" :mode="mode" :matched="mod.matched?.map(({ rawSelector }) => rawSelector)"
+            class="scrolls module-scrolls" :style="style"
           />
         </Pane>
         <Pane size="50">
@@ -89,17 +88,13 @@ const formatted = useCSSPrettify(computed(() => mod.value?.css), isPrettify)
               </label>
             </TitleBar>
             <CodeMirror
-              h-full
-              b="l main"
-              :model-value="formatted"
-              :read-only="true"
-              mode="css"
-              class="scrolls module-scrolls"
-              :style="style"
+              h-full border="l main" :model-value="formatted" :read-only="true" mode="css"
+              class="scrolls module-scrolls" :style="style"
             />
           </div>
         </Pane>
       </Splitpanes>
     </div>
+    <Analyzer v-else flex-grow overflow-y-auto :selectors="mod.matched" :colors="mod.colors" />
   </div>
 </template>

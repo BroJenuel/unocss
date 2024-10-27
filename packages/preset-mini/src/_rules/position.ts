@@ -1,9 +1,15 @@
 import type { CSSEntries, Rule, RuleContext, StaticRule } from '@unocss/core'
 import type { Theme } from '../theme'
-import { globalKeywords, handler as h, insetMap, makeGlobalStaticRules } from '../utils'
+import { globalKeywords, h, insetMap, makeGlobalStaticRules } from '../utils'
 
 export const positions: Rule[] = [
-  [/^(?:position-|pos-)?(relative|absolute|fixed|sticky)$/, ([, v]) => ({ position: v })],
+  [/^(?:position-|pos-)?(relative|absolute|fixed|sticky)$/, ([, v]) => ({ position: v }), {
+    autocomplete: [
+      '(position|pos)-<position>',
+      '(position|pos)-<globalKeyword>',
+      '<position>',
+    ],
+  }],
   [/^(?:position-|pos-)([-\w]+)$/, ([, v]) => globalKeywords.includes(v) ? { position: v } : undefined],
   [/^(?:position-|pos-)?(static)$/, ([, v]) => ({ position: v })],
 ]
@@ -17,6 +23,8 @@ export const justifies: StaticRule[] = [
   ['justify-around', { 'justify-content': 'space-around' }],
   ['justify-evenly', { 'justify-content': 'space-evenly' }],
   ['justify-stretch', { 'justify-content': 'stretch' }],
+  ['justify-left', { 'justify-content': 'left' }],
+  ['justify-right', { 'justify-content': 'right' }],
   ...makeGlobalStaticRules('justify', 'justify-content'),
 
   // items
@@ -70,7 +78,7 @@ export const alignments: StaticRule[] = [
   ...makeGlobalStaticRules('self', 'align-self'),
 ]
 
-export const placements: Rule[] = [
+export const placements: StaticRule[] = [
   // contents
   ['place-content-center', { 'place-content': 'center' }],
   ['place-content-start', { 'place-content': 'start' }],
@@ -101,7 +109,7 @@ export const placements: Rule[] = [
  * This is to add `flex-` and `grid-` prefix to the alignment rules,
  * supporting `flex="~ items-center"` in attributify mode.
  */
-export const flexGridJustifiesAlignments = [...justifies, ...alignments]
+export const flexGridJustifiesAlignments = [...justifies, ...alignments, ...placements]
   .flatMap(([k, v]): StaticRule[] => [
     [`flex-${k}`, v],
     [`grid-${k}`, v],
@@ -118,7 +126,9 @@ function handleInsetValues([, d, v]: string[], ctx: RuleContext): CSSEntries | u
 }
 
 export const insets: Rule[] = [
-  [/^(?:position-|pos-)?inset-(.+)$/, ([, v], ctx) => ({ inset: handleInsetValue(v, ctx) }),
+  [
+    /^(?:position-|pos-)?inset-(.+)$/,
+    ([, v], ctx) => ({ inset: handleInsetValue(v, ctx) }),
     {
       autocomplete: [
         '(position|pos)-inset-<directions>-$spacing',
@@ -140,6 +150,8 @@ export const floats: Rule[] = [
   // floats
   ['float-left', { float: 'left' }],
   ['float-right', { float: 'right' }],
+  ['float-start', { float: 'inline-start' }],
+  ['float-end', { float: 'inline-end' }],
   ['float-none', { float: 'none' }],
   ...makeGlobalStaticRules('float'),
 
@@ -147,13 +159,15 @@ export const floats: Rule[] = [
   ['clear-left', { clear: 'left' }],
   ['clear-right', { clear: 'right' }],
   ['clear-both', { clear: 'both' }],
+  ['clear-start', { clear: 'inline-start' }],
+  ['clear-end', { clear: 'inline-end' }],
   ['clear-none', { clear: 'none' }],
   ...makeGlobalStaticRules('clear'),
 ]
 
 export const zIndexes: Rule[] = [
   [/^(?:position-|pos-)?z([\d.]+)$/, ([, v]) => ({ 'z-index': h.number(v) })],
-  [/^(?:position-|pos-)?z-(.+)$/, ([, v]) => ({ 'z-index': h.bracket.cssvar.global.auto.number(v) }), { autocomplete: 'z-<num>' }],
+  [/^(?:position-|pos-)?z-(.+)$/, ([, v], { theme }: RuleContext<Theme>) => ({ 'z-index': theme.zIndex?.[v] ?? h.bracket.cssvar.global.auto.number(v) }), { autocomplete: 'z-<num>' }],
 ]
 
 export const boxSizing: Rule[] = [

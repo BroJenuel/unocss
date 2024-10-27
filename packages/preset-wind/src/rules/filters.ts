@@ -1,7 +1,7 @@
 import type { CSSValues, Rule, RuleContext } from '@unocss/core'
 import type { Theme } from '@unocss/preset-mini'
-import { colorResolver, colorableShadows, globalKeywords, handler as h } from '@unocss/preset-mini/utils'
 import { varEmpty } from '@unocss/preset-mini/rules'
+import { colorableShadows, colorResolver, globalKeywords, h } from '@unocss/preset-mini/utils'
 
 export const filterBase = {
   '--un-blur': varEmpty,
@@ -35,7 +35,7 @@ function percentWithDefault(str?: string) {
     return v
 
   v = str ? h.percent(str) : '1'
-  if (v != null && parseFloat(v) <= 1)
+  if (v != null && Number.parseFloat(v) <= 1)
     return v
 }
 
@@ -87,20 +87,28 @@ export const filters: Rule<Theme>[] = [
   // drop-shadow only on filter
   [/^(?:filter-)?drop-shadow(?:-(.+))?$/, dropShadowResolver, {
     autocomplete: [
-      'filter-drop', 'filter-drop-shadow', 'filter-drop-shadow-color', 'drop-shadow', 'drop-shadow-color',
-      'filter-drop-shadow-$dropShadow', 'drop-shadow-$dropShadow',
-      'filter-drop-shadow-color-$colors', 'drop-shadow-color-$colors',
-      'filter-drop-shadow-color-(op|opacity)', 'drop-shadow-color-(op|opacity)',
-      'filter-drop-shadow-color-(op|opacity)-<percent>', 'drop-shadow-color-(op|opacity)-<percent>',
+      'filter-drop',
+      'filter-drop-shadow',
+      'filter-drop-shadow-color',
+      'drop-shadow',
+      'drop-shadow-color',
+      'filter-drop-shadow-$dropShadow',
+      'drop-shadow-$dropShadow',
+      'filter-drop-shadow-color-$colors',
+      'drop-shadow-color-$colors',
+      'filter-drop-shadow-color-(op|opacity)',
+      'drop-shadow-color-(op|opacity)',
+      'filter-drop-shadow-color-(op|opacity)-<percent>',
+      'drop-shadow-color-(op|opacity)-<percent>',
     ],
   }],
-  [/^(?:filter-)?drop-shadow-color-(.+)$/, colorResolver('--un-drop-shadow-color', 'drop-shadow')],
+  [/^(?:filter-)?drop-shadow-color-(.+)$/, colorResolver('--un-drop-shadow-color', 'drop-shadow', 'shadowColor')],
   [/^(?:filter-)?drop-shadow-color-op(?:acity)?-?(.+)$/, ([, opacity]) => ({ '--un-drop-shadow-opacity': h.bracket.percent(opacity) })],
   [/^(?:(backdrop-)|filter-)?grayscale(?:-(.+))?$/, toFilter('grayscale', percentWithDefault), { autocomplete: ['(backdrop|filter)-grayscale', '(backdrop|filter)-grayscale-<percent>', 'grayscale-<percent>'] }],
   [/^(?:(backdrop-)|filter-)?hue-rotate-(.+)$/, toFilter('hue-rotate', s => h.bracket.cssvar.degree(s))],
   [/^(?:(backdrop-)|filter-)?invert(?:-(.+))?$/, toFilter('invert', percentWithDefault), { autocomplete: ['(backdrop|filter)-invert', '(backdrop|filter)-invert-<percent>', 'invert-<percent>'] }],
   // opacity only on backdrop-filter
-  [/^(backdrop-)op(?:acity)-(.+)$/, toFilter('opacity', s => h.bracket.cssvar.percent(s)), { autocomplete: ['backdrop-(op|opacity)', 'backdrop-(op|opacity)-<percent>'] }],
+  [/^(backdrop-)op(?:acity)?-(.+)$/, toFilter('opacity', s => h.bracket.cssvar.percent(s)), { autocomplete: ['backdrop-(op|opacity)', 'backdrop-(op|opacity)-<percent>'] }],
   [/^(?:(backdrop-)|filter-)?saturate-(.+)$/, toFilter('saturate', s => h.bracket.cssvar.percent(s)), { autocomplete: ['(backdrop|filter)-saturate', '(backdrop|filter)-saturate-<percent>', 'saturate-<percent>'] }],
   [/^(?:(backdrop-)|filter-)?sepia(?:-(.+))?$/, toFilter('sepia', percentWithDefault), { autocomplete: ['(backdrop|filter)-sepia', '(backdrop|filter)-sepia-<percent>', 'sepia-<percent>'] }],
 

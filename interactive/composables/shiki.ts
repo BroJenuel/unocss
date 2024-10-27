@@ -1,28 +1,34 @@
-import type { Highlighter, Lang } from 'shiki'
+import type { HighlighterCore } from 'shiki/core'
+import { createHighlighterCore } from 'shiki/core'
+import langCss from 'shiki/langs/css.mjs'
+import langJs from 'shiki/langs/javascript.mjs'
+import vitesseDark from 'shiki/themes/vitesse-dark.mjs'
+import vitesseLight from 'shiki/themes/vitesse-light.mjs'
 
-export const shiki = ref<Highlighter>()
-
-import('shiki')
-  .then(async (r) => {
-    r.setCDN('/interactive/shiki/')
-    shiki.value = await r.getHighlighter({
-      themes: [
-        'vitesse-dark',
-        'vitesse-light',
-      ],
-      langs: [
-        'css',
-        'javascript',
-      ],
-    })
+export const shiki = computedAsync<HighlighterCore>(async () => {
+  return await createHighlighterCore({
+    loadWasm: () => import('shiki/wasm'),
+    themes: [
+      vitesseDark,
+      vitesseLight,
+    ],
+    langs: [
+      langCss,
+      langJs,
+    ],
   })
+})
 
-export function highlight(code: string, lang: Lang) {
+export function highlight(code: string, lang: 'css' | 'javascript') {
   if (!shiki.value)
     return code
   return shiki.value.codeToHtml(code, {
     lang,
-    theme: isDark.value ? 'vitesse-dark' : 'vitesse-light',
+    defaultColor: false,
+    themes: {
+      dark: 'vitesse-dark',
+      light: 'vitesse-light',
+    },
   })
 }
 

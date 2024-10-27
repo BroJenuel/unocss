@@ -1,6 +1,6 @@
 import type { UserConfig } from '@unocss/core'
 
-export interface VitePluginConfig<Theme extends {} = {}> extends UserConfig<Theme> {
+export interface VitePluginConfig<Theme extends object = object> extends UserConfig<Theme> {
   /**
    * Enable UnoCSS inspector
    *
@@ -47,4 +47,14 @@ export interface VitePluginConfig<Theme extends {} = {}> extends UserConfig<Them
    * @default true
    */
   hmrTopLevelAwait?: boolean
+
+  /**
+   * Fetch mode in devtools.
+   *
+   * Some server does not configure its CORS and you may want to set this to 'no-cors'.
+   * See https://github.com/unocss/unocss/issues/2822.
+   *
+   * @default 'cors'
+   */
+  fetchMode?: 'cors' | 'navigate' | 'no-cors' | 'same-origin'
 }

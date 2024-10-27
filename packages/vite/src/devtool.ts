@@ -1,9 +1,10 @@
+import type { UnocssPluginContext } from '@unocss/core'
+import type { IncomingMessage } from 'connect'
+import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite'
+import type { VitePluginConfig } from './types'
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite'
-import type { IncomingMessage } from 'connect'
-import type { UnocssPluginContext } from '@unocss/core'
 import { toEscapedSelector } from '@unocss/core'
 
 const _dirname = typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url))
@@ -21,7 +22,7 @@ const MODULES_MAP: Record<string, string | undefined> = {
   [MOCK_CLASSES_MODULE_ID]: MOCK_CLASSES_PATH,
 }
 
-const POST_PATH = '/@unocss-devtools-update'
+const BASE_POST_PATH = '/@unocss-devtools-update'
 
 function getBodyJson(req: IncomingMessage) {
   return new Promise<any>((resolve, reject) => {
@@ -39,12 +40,13 @@ function getBodyJson(req: IncomingMessage) {
   })
 }
 
-export function createDevtoolsPlugin(ctx: UnocssPluginContext): Plugin[] {
+export function createDevtoolsPlugin(ctx: UnocssPluginContext, pluginConfig: VitePluginConfig<any>): Plugin[] {
   let config: ResolvedConfig
   let server: ViteDevServer | undefined
   let clientCode = ''
   let devtoolTimer: any
   let lastUpdate = Date.now()
+  let postPath = BASE_POST_PATH
 
   function toClass(name: string) {
     // css escape
@@ -91,13 +93,14 @@ export function createDevtoolsPlugin(ctx: UnocssPluginContext): Plugin[] {
 
       configResolved(_config) {
         config = _config
+        postPath = `${(config.base?.replace(/\/$/, '') ?? '')}${BASE_POST_PATH}`
       },
 
       configureServer(_server) {
         server = _server
 
         server.middlewares.use(async (req, res, next) => {
-          if (req.url !== POST_PATH)
+          if (req.url !== postPath)
             return next()
 
           try {
@@ -141,7 +144,8 @@ export function createDevtoolsPlugin(ctx: UnocssPluginContext): Plugin[] {
               `import('${DEVTOOLS_CSS_PATH}')`,
             ]
               .join('\n')
-              .replace('__POST_PATH__', (config.server?.origin ?? '') + POST_PATH)
+              .replace('__POST_PATH__', `${(config.server?.origin ?? '')}${postPath}`)
+              .replace('__POST_FETCH_MODE__', pluginConfig.fetchMode ?? 'cors')
           }
           return config.command === 'build'
             ? ''

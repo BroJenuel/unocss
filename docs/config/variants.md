@@ -5,7 +5,7 @@ description: Variants allow you to apply some variations to your existing rules.
 
 # Variants
 
-[Variants](https://windicss.org/utilities/general/variants.html) allow you to apply some variations to your existing rules, like the `hover:` variant from Tailwind.
+[Variants](https://windicss.org/utilities/general/variants.html) allow you to apply some variations to your existing rules, like the `hover:` variant from Tailwind CSS.
 
 ## Example
 
@@ -22,7 +22,7 @@ variants: [
       matcher: matcher.slice(6),
       selector: s => `${s}:hover`,
     }
-  }
+  },
 ],
 rules: [
   [/^m-(\d)$/, ([, d]) => ({ margin: `${d / 4}rem` })],
@@ -54,4 +54,4 @@ With this, we could have `m-2` applied only when users hover over the element.
 
 ## Going further
 
-The variant system is very powerful and can’t be covered fully in this guide, you can check [the default preset’s implementation](https://github.com/unocss/unocss/tree/main/packages/preset-mini/src/_variants) to see more advanced usages.
+The variant system is very powerful and can't be covered fully in this guide, you can check [the default preset's implementation](https://github.com/unocss/unocss/tree/main/packages/preset-mini/src/_variants) to see more advanced usages.

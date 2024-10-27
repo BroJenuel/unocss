@@ -1,5 +1,7 @@
-import { defineConfig } from 'vitepress'
 import type { DefaultTheme } from 'vitepress/types'
+import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
+import { defineConfig } from 'vitepress'
+import { groupIconMdPlugin } from 'vitepress-plugin-group-icons'
 import { version } from '../../package.json'
 
 const ogUrl = 'https://unocss.dev/'
@@ -26,6 +28,7 @@ const Configs: DefaultTheme.NavItemWithLink[] = [
   { text: 'Transformers', link: '/config/transformers' },
   { text: 'Preflights', link: '/config/preflights' },
   { text: 'Layers', link: '/config/layers' },
+  { text: 'AutoComplete', link: '/config/autocomplete' },
   { text: 'Presets', link: '/config/presets' },
 ]
 
@@ -39,7 +42,8 @@ const Integrations: DefaultTheme.NavItemWithLink[] = [
   { text: 'CLI', link: '/integrations/cli' },
   { text: 'PostCSS', link: '/integrations/postcss' },
   { text: 'ESLint', link: '/integrations/eslint' },
-  { text: 'VSCode extension', link: '/integrations/vscode' },
+  { text: 'VS Code Extension', link: '/integrations/vscode' },
+  { text: 'JetBrains IDE Plugin', link: '/integrations/jetbrains' },
 ]
 
 const Presets: DefaultTheme.NavItemWithLink[] = [
@@ -50,6 +54,7 @@ const Presets: DefaultTheme.NavItemWithLink[] = [
   { text: 'Web fonts', link: '/presets/web-fonts' },
   { text: 'Wind', link: '/presets/wind' },
   { text: 'Mini', link: '/presets/mini' },
+  { text: 'Legacy Compat', link: '/presets/legacy-compat' },
   { text: 'Tagify', link: '/presets/tagify' },
   { text: 'Rem to px', link: '/presets/rem-to-px' },
 ]
@@ -63,6 +68,7 @@ const Transformers: DefaultTheme.NavItemWithLink[] = [
 
 const Extractors: DefaultTheme.NavItemWithLink[] = [
   { text: 'Pug Extractor', link: '/extractors/pug' },
+  { text: 'MDC Extractor', link: '/extractors/mdc' },
   { text: 'Svelte Extractor', link: '/extractors/svelte' },
   { text: 'Arbitrary Variants Extractor', link: '/extractors/arbitrary-variants' },
 ]
@@ -88,12 +94,16 @@ const Nav: DefaultTheme.NavItem[] = [
     text: 'Integrations',
     items: [
       {
+        text: 'Overview',
+        link: '/integrations/',
+      },
+      {
         text: 'Integrations',
         items: Integrations,
       },
       {
         text: 'Examples',
-        link: 'https://github.com/unocss/unocss/tree/main/examples',
+        link: '/integrations/#examples',
       },
     ],
     activeMatch: '^/integrations/',
@@ -138,8 +148,9 @@ const Nav: DefaultTheme.NavItem[] = [
     ],
     activeMatch: '^/(presets|transformers|extractors)/',
   },
-  { text: 'Interactive Docs', link: `${ogUrl}interactive/`, target: '_blank' },
-  { text: 'Playground', link: `${ogUrl}play/`, target: '_blank' },
+  { text: 'Interactive Docs', link: '/interactive/', target: '_blank' },
+  { text: 'Playground', link: '/play/', target: '_blank' },
+  { text: 'Tutorial', link: 'https://tutorial.unocss.dev/', target: '_blank' },
   {
     text: `v${version}`,
     items: [
@@ -150,6 +161,12 @@ const Nav: DefaultTheme.NavItem[] = [
       {
         text: 'Contributing',
         link: 'https://github.com/unocss/unocss/blob/main/CONTRIBUTING.md',
+      },
+      {
+        component: 'RainbowAnimationSwitcher',
+        props: {
+          text: 'Rainbow Animation',
+        },
       },
     ],
   },
@@ -162,19 +179,25 @@ const SidebarGuide: DefaultTheme.SidebarItem[] = [
   },
   {
     text: 'Integrations',
-    items: Integrations,
-  },
-  {
-    text: 'Presets',
-    link: '/presets/',
+    items: [
+      {
+        text: 'Overview',
+        link: '/integrations/',
+      },
+      ...Integrations,
+      {
+        text: 'Examples',
+        link: '/integrations/#examples',
+      },
+    ],
   },
   {
     text: 'Config',
     link: '/config/',
   },
   {
-    text: 'Examples',
-    link: 'https://github.com/unocss/unocss/tree/main/examples',
+    text: 'Presets',
+    link: '/presets/',
   },
 ]
 
@@ -203,7 +226,7 @@ const SidebarPresets: DefaultTheme.SidebarItem[] = [
     items: Extractors,
   },
   {
-    text: 'Other packages',
+    text: 'Other Packages',
     collapsed: false,
     items: Tools,
   },
@@ -254,6 +277,14 @@ export default defineConfig({
     theme: {
       light: 'vitesse-light',
       dark: 'vitesse-dark',
+    },
+    codeTransformers: [
+      transformerTwoslash({
+        processHoverInfo: info => info.replace(/_unocss_core\./g, ''),
+      }),
+    ],
+    config(md) {
+      md.use(groupIconMdPlugin)
     },
   },
 

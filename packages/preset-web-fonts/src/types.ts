@@ -1,14 +1,29 @@
-export type WebFontsProviders = 'google' | 'bunny' | 'fontshare' | 'none' | Provider
+import type { Arrayable, Awaitable } from '@unocss/core'
+
+export type WebFontsProviders = 'google' | 'bunny' | 'fontshare' | 'fontsource' | 'none' | Provider
 
 export interface WebFontMeta {
   name: string
-  weights?: (string | number)[]
-  italic?: boolean
+  weights?: (string | number)[] // wght axis
+  italic?: boolean // ital axis
+  variable?: Record<string, Partial<Axes>> // variable font
   /**
    * Override the provider
    * @default <matches root config>
    */
   provider?: WebFontsProviders
+}
+
+export interface WebFontProcessor {
+  getCSS?: (
+    fonts: ResolvedWebFontMeta[],
+    providers: Provider[],
+    getCSSDefault: (
+      fonts: ResolvedWebFontMeta[],
+      providers: Provider[],
+    ) => Awaitable<string>
+  ) => Awaitable<string | undefined>
+  transformCSS?: (css: string) => Promise<string | undefined>
 }
 
 export interface ResolvedWebFontMeta extends Omit<WebFontMeta, 'provider'> {
@@ -53,11 +68,41 @@ export interface WebFontsOptions {
    * @default undefined
    */
   customFetch?: (url: string) => Promise<any>
+
+  /**
+   * Custom processor for the font CSS
+   */
+  processors?: Arrayable<WebFontProcessor>
+
+  /**
+   * Timeouts for fetching web fonts
+   */
+  timeouts?: false | {
+    /**
+     * Timeout for printing warning message
+     *
+     * @default 500
+     */
+    warning?: number
+    /**
+     * Timeout for failing the fetch
+     *
+     * @default 2000
+     */
+    failure?: number
+  }
 }
 
 export interface Provider {
   name: WebFontsProviders
-  getPreflight?(fonts: WebFontMeta[]): string
-  getImportUrl?(fonts: WebFontMeta[]): string | undefined
-  getFontName?(font: WebFontMeta): string
+  getPreflight?: (fonts: WebFontMeta[]) => Awaitable<string | undefined>
+  getImportUrl?: (fonts: WebFontMeta[]) => string | undefined
+  getFontName?: (font: WebFontMeta) => string
+}
+
+export interface Axes {
+  default: string
+  min: string
+  max: string
+  step: string
 }

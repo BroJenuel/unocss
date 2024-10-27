@@ -1,13 +1,13 @@
 import type { UserConfig } from '@unocss/core'
 import { createGenerator } from '@unocss/core'
-import { breakpointsTailwind } from '@vueuse/core'
 import { createSearch, evaluateUserConfig } from '@unocss/shared-docs'
-import defaultConfigRaw from '../../packages/shared-docs/src/defaultConfig.ts?raw'
-import type { ResultItem } from '~/types'
-import { mdnIndex as docs } from '~/data/mdn-index'
+import { breakpointsTailwind } from '@vueuse/core'
 import { guideIndex as guides } from '~/data/guides'
-
+import { mdnIndex as docs } from '~/data/mdn-index'
+import type { ResultItem } from '~/types'
 import { defaultConfig } from '~/uno.config'
+import defaultConfigRaw from '../../packages/shared-docs/src/default-config.ts?raw'
+import { unocssBundle } from '../../packages/shared-docs/src/unocss-bundle'
 
 export { defaultConfigRaw }
 
@@ -37,7 +37,7 @@ export const userConfig = ref<UserConfig | undefined>()
 async function load() {
   userConfigLoading.value = true
   try {
-    userConfig.value = await evaluateUserConfig(userConfigRaw.value || defaultConfigRaw)
+    userConfig.value = await evaluateUserConfig(userConfigRaw.value || defaultConfigRaw, unocssBundle)
   }
   catch (e) {
     console.error(e)

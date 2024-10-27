@@ -1,9 +1,13 @@
-import type { AutocompleteTemplatePart, ParsedAutocompleteTemplate } from './types'
+import type { AutoCompleteMatchType, AutocompleteTemplateGroup, AutocompleteTemplatePart, ParsedAutocompleteTemplate } from './types'
+import { uniq } from '@unocss/core'
+import { Fzf } from 'fzf'
+import { cartesian } from './utils'
 
 export const shorthands: Record<string, string> = {
-  num: `(${[0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 24, 36].join('|')})`,
-  percent: `(${Array.from({ length: 11 }, (_, i) => i * 10).join('|')})`,
   directions: '(x|y|t|b|l|r|s|e)',
+  num: `(${[0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 24, 36].join('|')})`,
+  percent: `(${[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].join('|')})`,
+  percentage: `(${['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%'].join('|')})`,
 }
 
 export const ignoredThemeKeys = ['DEFAULT']
@@ -28,16 +32,23 @@ function handleRegexMatch(
     onNotMatched(str.slice(lastIndex), lastIndex, str.length)
 }
 
-export function parseAutocomplete(template: string, theme: any = {}): ParsedAutocompleteTemplate {
+export function parseAutocomplete(template: string, theme: any = {}, extraShorthands: Record<string, string> = {}): ParsedAutocompleteTemplate {
   const parts: AutocompleteTemplatePart[] = []
 
+  const newShorthands = {
+    ...shorthands,
+    ...extraShorthands,
+  }
+
   template = template.replace(/<(\w+)>/g, (_, key) => {
-    if (!shorthands[key])
+    if (!newShorthands[key])
       throw new Error(`Unknown template shorthand: ${key}`)
-    return shorthands[key]
+    return newShorthands[key]
   })
 
   handleGroups(template)
+
+  const fzf = new Fzf(getAllCombination(parts))
 
   return {
     parts,
@@ -47,7 +58,7 @@ export function parseAutocomplete(template: string, theme: any = {}): ParsedAuto
   function handleNonGroup(input: string) {
     handleRegexMatch(
       input,
-      /\$([\w\.\|]+)/g,
+      /\$([\w.|]+)/g,
       (m) => {
         parts.push({
           type: 'theme',
@@ -76,7 +87,7 @@ export function parseAutocomplete(template: string, theme: any = {}): ParsedAuto
       (m) => {
         parts.push({
           type: 'group',
-          values: m[1].split('|').sort((a, b) => b.length - a.length),
+          values: m[1].split('|'),
         })
       },
       (str) => {
@@ -85,37 +96,46 @@ export function parseAutocomplete(template: string, theme: any = {}): ParsedAuto
     )
   }
 
-  function suggest(input: string) {
-    let rest = input
-    let matched = ''
-    let combinations: string[] = []
+  function suggest(input: string, matchType: AutoCompleteMatchType = 'prefix') {
+    if (input.length > 1 && matchType === 'fuzzy')
+      return fzf.find(input).map(i => i.item)
+    let rest = input.replace(/-/g, '')
+    let matched: string[] = ['']
+    let combinations: string[] = ['']
     const tempParts = [...parts]
 
     while (tempParts.length) {
       const part = tempParts.shift()!
       if (part.type === 'static') {
-        if (combinations.length)
-          combinations = combinations.map(i => i + part.value)
-        if (part.value.startsWith(rest) && part.value !== rest && !combinations.length) {
-          combinations = [part.value]
-          break
-        }
-        else if (!rest.startsWith(part.value)) {
-          break
-        }
-        matched += part.value
-        rest = rest.slice(part.value.length)
+        const temp = part.value.replace(/-/g, '')
+        if (!rest.startsWith(temp) && !part.value.startsWith(rest))
+          return ['']
+        matched = matched.map(m => m + part.value)
+        rest = rest.slice(temp.length)
       }
       else if (part.type === 'group') {
         const fullMatched = part.values.find(i => i && rest.startsWith(i))
-        if (fullMatched != null) {
-          matched += fullMatched
+        if (fullMatched) {
+          matched = matched.map(m => m + fullMatched)
           rest = rest.slice(fullMatched.length)
+          if (!tempParts[0] && rest)
+            return []
+          continue
         }
         else {
-          combinations = part.values.filter(i => i.startsWith(rest))
-          if (tempParts[0]?.type !== 'static')
+          if (tempParts[0]) {
+            const values = part.values.filter(i => i && i.startsWith(rest))
+            rest = ''
+            if (values.length) {
+              matched = matched.map(m => values.map(n => m + n)).flat()
+              continue
+            }
             break
+          }
+          if (matched[0] === '')
+            break
+          combinations = part.values.filter(p => p.startsWith(rest))
+          break
         }
       }
       else if (part.type === 'theme') {
@@ -123,31 +143,34 @@ export function parseAutocomplete(template: string, theme: any = {}): ParsedAuto
           .filter(i => i && !ignoredThemeKeys.includes(i) && i[0] !== '_')
         const fullMatched = keys.find(i => i && rest.startsWith(i))
         if (fullMatched != null) {
-          matched += fullMatched
           rest = rest.slice(fullMatched.length)
           const subObjects = part.objects.map(i => i[fullMatched])
             .filter((i): i is Record<string, unknown> => !!i && typeof i === 'object')
 
           if (subObjects.length) {
+            matched = matched.map(m => `${m + fullMatched}-`)
             tempParts.unshift({
-              type: 'static',
-              value: '-',
-            }, {
               type: 'theme',
               objects: subObjects,
             })
           }
+          else {
+            combinations = keys.filter(i => i.startsWith(rest))
+          }
         }
         else {
-          combinations = keys.filter(i => i.startsWith(rest))
-          if (tempParts[0]?.type !== 'static')
-            break
+          if (tempParts[0] && tempParts[0].type !== 'static') {
+            const values = (tempParts[0] as AutocompleteTemplateGroup).values
+            if (values)
+              matched = matched.filter(i => i && rest.startsWith(i)).map(m => values.map(n => m + n)).flat()
+          }
+          else {
+            combinations = keys.filter(i => i.startsWith(rest))
+          }
+          break
         }
       }
     }
-
-    if (combinations.length === 0)
-      combinations.push('')
 
     // if (listAll && tempParts.length) {
     //   for (const part of tempParts) {
@@ -175,7 +198,39 @@ export function parseAutocomplete(template: string, theme: any = {}): ParsedAuto
     //   }
     // }
 
-    return combinations.map(i => matched + i)
-      .filter(i => i.length >= input.length)
+    return combinations.map(i => matched.map(m => m + i)).flat().filter(i => i.length >= input.length)
   }
+}
+
+function getValuesFromPartTemplate(part: AutocompleteTemplatePart): string[] {
+  if (part.type === 'static')
+    return [part.value]
+  if (part.type === 'theme') {
+    return part.objects.flatMap((i) => {
+      const keys = Object.keys(i).filter(i => i && i[0] !== '_')
+      for (const key in i) {
+        const value = i[key]
+        if (value === null || value === undefined)
+          continue
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          const subKeys = getValuesFromPartTemplate({
+            type: 'theme',
+            objects: [value as Record<string, unknown>],
+          }).map(i => `${key}-${i}`)
+
+          keys.push(...subKeys)
+        }
+      }
+      return keys
+    })
+  }
+  if (part.type === 'group')
+    return [...part.values]
+  return []
+}
+
+function getAllCombination(parts: AutocompleteTemplatePart[]) {
+  const values = parts.map(i => getValuesFromPartTemplate(i))
+  const list = uniq(cartesian(values).flatMap(i => i.join('').replace('-DEFAULT', '')))
+  return list
 }

@@ -1,5 +1,5 @@
-import defaultConfigRaw from '../../../packages/shared-docs/src/defaultConfig.ts?raw'
-import { version } from '../../../package.json'
+import { version as bundleVersion } from '../../../package.json'
+import defaultConfigRaw from '../../../packages/shared-docs/src/default-config.ts?raw'
 
 export const defaultHTML = `
 <div h-full text-center flex select-none all:transition-400>
@@ -25,9 +25,19 @@ export const defaultHTML = `
 </div>
 `.trim()
 
-export { defaultConfigRaw, version }
+export {
+  bundleVersion,
+  defaultConfigRaw,
+}
 
-export const defaultCSS = ''
+export const defaultCSS = `
+/* Write custom CSS here, and transformer support. For example: */
+/* .custom {
+  font-weight: 500;
+  @apply p1 text-(white xl);
+  background-color: theme('colors.red.400');
+} */
+`.trim()
 export const customCSSLayerName = 'playground'
 
 export const defaultOptions = '{}'
